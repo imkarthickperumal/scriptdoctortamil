@@ -117,9 +117,10 @@ export default function Home() {
             : "bg-[#fffdfa]/90 border-amber-900/10 shadow-sm"
         }`}
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-amber-500/60 shadow-lg shadow-amber-500/20 bg-slate-900">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-2">
+          {/* Logo & Brand Name */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full overflow-hidden border-2 border-amber-500/60 shadow-lg shadow-amber-500/20 bg-slate-900 flex-shrink-0">
               <Image
                 src="/images/logo.png"
                 alt="Script Doctor Tamil Logo"
@@ -128,16 +129,16 @@ export default function Home() {
                 priority
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <span
-                className={`font-black tracking-tight text-lg block leading-none ${
+                className={`font-black tracking-tight text-sm sm:text-lg block leading-tight truncate ${
                   isDark ? "text-gradient-gold" : "text-amber-700"
                 }`}
               >
                 Script Doctor Tamil
               </span>
               <span
-                className={`text-[11px] font-medium tracking-wider uppercase flex items-center gap-1 ${
+                className={`text-[10px] sm:text-[11px] font-medium tracking-wider uppercase hidden sm:flex items-center gap-1 ${
                   isDark ? "text-amber-400/80" : "text-slate-600"
                 }`}
               >
@@ -146,6 +147,7 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Desktop Navigation Links */}
           <nav
             className={`hidden md:flex items-center gap-8 text-sm font-medium ${
               isDark ? "text-slate-300" : "text-slate-700"
@@ -171,36 +173,37 @@ export default function Home() {
             </a>
           </nav>
 
-          <div className="flex items-center gap-3.5 sm:gap-4 ml-2 sm:ml-4">
+          {/* Header Action Buttons (Theme Toggle & Buy Button) */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
               aria-label="Toggle Dark / Light Theme"
               title={isDark ? "Switch to Light Theme" : "Switch to Dark Theme"}
-              className={`p-2.5 rounded-full border transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-110 active:scale-95 shadow-md ${
+              className={`p-2 sm:p-2.5 rounded-full border transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-110 active:scale-95 shadow-md flex-shrink-0 ${
                 isDark
                   ? "bg-slate-900 border-amber-500/40 text-amber-400 hover:bg-slate-800 hover:border-amber-400 shadow-amber-500/10"
                   : "bg-amber-100/90 border-amber-400 text-amber-900 hover:bg-amber-200 hover:border-amber-500 shadow-amber-500/20"
               }`}
             >
               {isDark ? (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
               ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                 </svg>
               )}
             </button>
 
-            {/* Buy CTA Button */}
+            {/* Buy CTA Button - Clean Single Line on Mobile & Web */}
             <button
               onClick={scrollToCheckout}
-              className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black px-5 py-2.5 rounded-full text-sm shadow-lg shadow-amber-500/25 transition-all transform hover:scale-105 active:scale-95 cursor-pointer"
+              className="flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm shadow-lg shadow-amber-500/25 transition-all transform hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap flex-shrink-0"
             >
               <span>Get E-Book • ₹333</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
             </button>
