@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
 export default function Home() {
@@ -15,7 +15,86 @@ export default function Home() {
   const [isPaymentSuccess, setIsPaymentSuccess] = useState(false);
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
   const [copiedEmail, setCopiedEmail] = useState(false);
-  const [previewImage, setPreviewImage] = useState<"/images/banner.jpg" | "/images/image.jpeg" | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  // Video autoplay state & scroll observer refs for 2 separate videos
+  const videoIframeRef1 = useRef<HTMLIFrameElement>(null);
+  const videoIframeRef2 = useRef<HTMLIFrameElement>(null);
+  const heroVideoSectionRef = useRef<HTMLDivElement>(null);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [isVideo1Muted, setIsVideo1Muted] = useState(true);
+  const [isVideo2Muted, setIsVideo2Muted] = useState(true);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            if (videoIframeRef1.current?.contentWindow) {
+              videoIframeRef1.current.contentWindow.postMessage(
+                JSON.stringify({ event: "command", func: "playVideo", args: "" }),
+                "*"
+              );
+            }
+            if (videoIframeRef2.current?.contentWindow) {
+              videoIframeRef2.current.contentWindow.postMessage(
+                JSON.stringify({ event: "command", func: "playVideo", args: "" }),
+                "*"
+              );
+            }
+            setIsVideoPlaying(true);
+          } else {
+            if (videoIframeRef1.current?.contentWindow) {
+              videoIframeRef1.current.contentWindow.postMessage(
+                JSON.stringify({ event: "command", func: "pauseVideo", args: "" }),
+                "*"
+              );
+            }
+            if (videoIframeRef2.current?.contentWindow) {
+              videoIframeRef2.current.contentWindow.postMessage(
+                JSON.stringify({ event: "command", func: "pauseVideo", args: "" }),
+                "*"
+              );
+            }
+            setIsVideoPlaying(false);
+          }
+        });
+      },
+      { threshold: 0.2 }
+    );
+
+    if (heroVideoSectionRef.current) {
+      observer.observe(heroVideoSectionRef.current);
+    }
+
+    return () => {
+      if (heroVideoSectionRef.current) {
+        observer.unobserve(heroVideoSectionRef.current);
+      }
+    };
+  }, []);
+
+  const toggleVideo1Mute = () => {
+    if (videoIframeRef1.current?.contentWindow) {
+      const command = isVideo1Muted ? "unMute" : "mute";
+      videoIframeRef1.current.contentWindow.postMessage(
+        JSON.stringify({ event: "command", func: command, args: "" }),
+        "*"
+      );
+      setIsVideo1Muted(!isVideo1Muted);
+    }
+  };
+
+  const toggleVideo2Mute = () => {
+    if (videoIframeRef2.current?.contentWindow) {
+      const command = isVideo2Muted ? "unMute" : "mute";
+      videoIframeRef2.current.contentWindow.postMessage(
+        JSON.stringify({ event: "command", func: command, args: "" }),
+        "*"
+      );
+      setIsVideo2Muted(!isVideo2Muted);
+    }
+  };
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
@@ -88,13 +167,13 @@ export default function Home() {
           🎬 Tamil Cinema Special Edition
         </span>
         <span>
-          &ldquo;Kill the Cat / குடும்பங்கள் கொண்டாடும் Gen Z திரைக்கதை&rdquo; E-Book • Get 66% OFF Today!
+          &ldquo;Kill the Cat / குடும்பங்கள் கொண்டாடும் Gen Z திரைக்கதை&rdquo; E-Book • Get Special Offer Today!
         </span>
         <button
           onClick={scrollToCheckout}
           className="hidden sm:inline-block underline hover:text-amber-200 transition-colors ml-2 cursor-pointer"
         >
-          Claim For ₹333 &rarr;
+          Claim For ₹399 &rarr;
         </button>
       </div>
 
@@ -202,7 +281,7 @@ export default function Home() {
               onClick={scrollToCheckout}
               className="flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm shadow-lg shadow-amber-500/25 transition-all transform hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap flex-shrink-0"
             >
-              <span>Get E-Book • ₹333</span>
+              <span>Get E-Book • ₹399</span>
               <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
@@ -356,16 +435,16 @@ export default function Home() {
                     : "bg-amber-50 border-amber-200 shadow-sm"
                 }`}
               >
-                <span className="text-3xl sm:text-4xl font-black text-amber-500">₹333</span>
+                <span className="text-3xl sm:text-4xl font-black text-amber-500">₹399</span>
                 <span
                   className={`line-through text-lg ${
                     isDark ? "text-slate-500" : "text-slate-400"
                   }`}
                 >
-                  ₹999
+                  ₹500
                 </span>
                 <span className="bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-black px-2.5 py-0.5 rounded-md border border-rose-500/30">
-                  66% OFF
+                  SAVE ₹101
                 </span>
               </div>
 
@@ -373,7 +452,7 @@ export default function Home() {
                 onClick={scrollToCheckout}
                 className="w-full sm:flex-1 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-extrabold text-base sm:text-lg px-8 py-4 rounded-2xl shadow-xl shadow-amber-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-3 cursor-pointer"
               >
-                <span>Pay ₹333 & Download Now</span>
+                <span>Pay ₹399 &amp; Download Now</span>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
@@ -408,11 +487,10 @@ export default function Home() {
 
           </div>
 
-          {/* Right Hero Column: Grand Banner Image + Book Cover Display */}
+          {/* Right Hero Column: SCENE 01 TAKE 1 Header + YouTube Shorts Video */}
           <div className="lg:col-span-5 flex flex-col gap-5 items-center">
             
-            {/* Banner Showcase Box (Full 16:9 Display without Crop) */}
-            <div className="relative w-full max-w-md group">
+            <div className="relative w-full max-w-sm group">
               {/* Outer Glow framing effect */}
               <div className="absolute -inset-1 bg-gradient-to-r from-amber-500 via-rose-500 to-amber-600 rounded-3xl blur-xl opacity-50 group-hover:opacity-80 transition duration-700 animate-pulse-glow" />
               
@@ -423,7 +501,7 @@ export default function Home() {
                     : "bg-white border-amber-300 shadow-amber-500/20"
                 }`}
               >
-                {/* Tamil Cinema Clapper Header */}
+                {/* Tamil Cinema Clapper Header (KEPT AS REQUESTED) */}
                 <div className="bg-black/90 text-amber-400 text-[11px] font-mono font-bold px-3 py-1.5 rounded-lg mb-3 flex items-center justify-between border border-amber-500/30">
                   <span className="flex items-center gap-1.5">
                     <span>🎬</span> SCENE: 01 | TAKE: 1
@@ -431,39 +509,34 @@ export default function Home() {
                   <span className="text-slate-400">SCRIPT DOCTOR TAMIL</span>
                 </div>
 
-                {/* Banner Hero Showcase Graphic - Exactly 16:9 Full View */}
-                <div
-                  onClick={() => setPreviewImage("/images/banner.jpg")}
-                  className="relative aspect-[16/9] w-full rounded-xl overflow-hidden border-2 border-amber-500/50 shadow-inner cursor-pointer group/banner mb-4 bg-slate-950"
-                >
-                  <Image
-                    src="/images/banner.jpg"
-                    alt="Script Doctor Tamil Banner Image"
-                    fill
-                    className="object-contain transform group-hover/banner:scale-102 transition-transform duration-500"
-                    priority
-                  />
-                  {/* Subtle Top-Right Expand Badge */}
-                  <div className="absolute top-2 right-2 z-10 bg-amber-500/90 text-slate-950 text-[10px] font-black uppercase px-2 py-0.5 rounded shadow flex items-center gap-1">
-                    🔍 Full View
-                  </div>
+                {/* Video Status & Sound Toggle Control Bar */}
+                <div className="w-full mb-3 flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-slate-950/80 border border-amber-500/30 text-xs">
+                  <span className="flex items-center gap-1.5 font-semibold text-amber-400">
+                    <span className={`w-2.5 h-2.5 rounded-full ${isVideoPlaying ? "bg-emerald-500 animate-pulse" : "bg-slate-500"}`} />
+                    {isVideoPlaying ? "Autoplay Active" : "Paused"}
+                  </span>
+
+                  <button
+                    onClick={toggleVideo1Mute}
+                    className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold px-2.5 py-0.5 rounded-md border border-amber-500/40 transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    {isVideo1Muted ? "🔊 Sound On" : "🔇 Mute"}
+                  </button>
                 </div>
 
-                {/* Main Book Cover Graphic (image.jpeg) - Fitted 9:16 Aspect Ratio */}
-                <div
-                  onClick={() => setPreviewImage("/images/image.jpeg")}
-                  className="relative aspect-[9/12] sm:aspect-[9/13] w-full rounded-xl overflow-hidden bg-slate-950 shadow-inner cursor-pointer group/cover"
-                >
-                  <Image
-                    src="/images/image.jpeg"
-                    alt="Kill the Cat E-Book Cover - Script Doctor Tamil"
-                    fill
-                    className="object-contain transform group-hover/cover:scale-102 transition-transform duration-500"
-                    priority
+                {/* YouTube Shorts Video Player Frame (9:16 Aspect) */}
+                <div className="relative aspect-[9/16] w-full rounded-xl overflow-hidden border-2 border-amber-500/60 shadow-2xl bg-black">
+                  <iframe
+                    ref={videoIframeRef1}
+                    src="https://www.youtube.com/embed/bqgbZ_5QM2o?enablejsapi=1&autoplay=1&mute=1&loop=1&playlist=bqgbZ_5QM2o&rel=0&controls=1"
+                    title="Script Doctor Tamil YouTube Short"
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
                   />
                 </div>
 
-                {/* Book Meta Bar */}
+                {/* Book & Video Meta Bar */}
                 <div
                   className={`mt-4 pt-3 border-t flex items-center justify-between text-xs ${
                     isDark
@@ -495,9 +568,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* DEDICATED TAMIL CINEMA BANNER SHOWCASE SECTION (100% FULL UNCROPPED VIEW) */}
-      <section id="banner-showcase" className="py-16 px-4 sm:px-6 max-w-6xl mx-auto border-t border-slate-800/40">
-        <div className="text-center max-w-2xl mx-auto mb-8">
+      {/* DEDICATED KOLLYWOOD SCREENPLAY MARQUEE SECTION (DIRECTLY UNDER HERO SECTION WITH EQUAL HEIGHT IMAGES) */}
+      <section id="banner-showcase" className="py-16 px-4 sm:px-6 max-w-6xl mx-auto border-t border-amber-500/20 relative z-10">
+        {/* Section Header */}
+        <div className="text-center max-w-2xl mx-auto mb-10">
           <span className="text-xs uppercase tracking-widest text-amber-500 font-extrabold block mb-1">
             🎬 Kollywood Screenplay Marquee
           </span>
@@ -505,65 +579,146 @@ export default function Home() {
             Tamil Cinema Screenplay Banner
           </h2>
           <p className={`text-sm sm:text-base mt-2 ${isDark ? "text-slate-400" : "text-slate-600"}`}>
-            Full uncropped official poster banner for &ldquo;Kill the Cat / குடும்பங்கள் கொண்டாடும் Gen Z திரைக்கதை&rdquo;.
+            Full official visual guides &amp; screenplay posters for &ldquo;Kill the Cat / குடும்பங்கள் கொண்டாடும் Gen Z திரைக்கதை&rdquo;.
           </p>
         </div>
 
-        {/* 35mm Film Strip Marquee Box holding full 16:9 banner.jpg */}
-        <div
-          className={`rounded-3xl p-4 sm:p-6 border shadow-2xl relative overflow-hidden transition-colors film-strip-border-top ${
-            isDark
-              ? "glass-card-gold-dark border-amber-500/40"
-              : "glass-card-gold-light border-amber-400"
-          }`}
-        >
-          {/* Top Marquee Header */}
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-4 pb-3 border-b border-amber-500/20 text-xs font-mono">
-            <span className="text-amber-500 font-bold flex items-center gap-2">
-              <span className="animate-ping w-2 h-2 rounded-full bg-amber-500" />
-              DIRECTOR&apos;S CUT • SCRIPT DOCTOR TAMIL OFFICIAL BANNER
-            </span>
-            <span className={isDark ? "text-slate-300" : "text-slate-700"}>
-              FORMAT: FEATURE FILM / SHORT FILM / REELS SCRIPT
-            </span>
-          </div>
-
-          {/* Full Uncropped 16:9 Banner Display */}
+        {/* 2 Equal-Height Image Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+          
+          {/* FULL IMAGE 1 CARD (/images/image1.jpeg) */}
           <div
-            onClick={() => setPreviewImage("/images/banner.jpg")}
-            className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-2xl cursor-pointer group bg-slate-950"
+            className={`rounded-3xl p-5 border shadow-2xl flex flex-col justify-between transition-all film-strip-border-top h-full ${
+              isDark ? "glass-card-gold-dark border-amber-500/40" : "glass-card-gold-light border-amber-400"
+            }`}
           >
-            <Image
-              src="/images/banner.jpg"
-              alt="Script Doctor Tamil Main Movie Screenplay Banner"
-              fill
-              className="object-contain sm:object-cover transform group-hover:scale-[1.01] transition-transform duration-500"
-              priority
-            />
-            
-            {/* Hover overlay hint (does NOT block text) */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center pointer-events-none">
-              <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-amber-500 text-slate-950 font-black text-xs px-4 py-2 rounded-full shadow-2xl flex items-center gap-1.5 transform group-hover:scale-105">
-                🔍 Click to Inspect Full Banner Image
-              </span>
+            <div
+              onClick={() => setPreviewImage("/images/image1.jpeg")}
+              className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden border-2 border-amber-500/50 shadow-2xl cursor-pointer group bg-slate-950 flex-1"
+            >
+              <Image
+                src="/images/image1.jpeg"
+                alt="Script Doctor Tamil Screenplay Structure Guide"
+                fill
+                className="object-contain transform group-hover:scale-[1.02] transition-transform duration-500"
+                priority
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center pointer-events-none">
+                <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-amber-500 text-slate-950 font-black text-xs px-4 py-2 rounded-full shadow-2xl flex items-center gap-1.5 transform group-hover:scale-105">
+                  🔍 Click to Inspect Full Image
+                </span>
+              </div>
+            </div>
+            <div className="w-full mt-4 pt-3 border-t border-amber-500/20 flex items-center justify-between text-xs font-bold text-amber-400 flex-shrink-0">
+              <span>Visual Guide 01 • Screenplay Structure</span>
+              <span className="text-slate-400 font-mono">100% Equal Height</span>
             </div>
           </div>
 
-          {/* Clean Footer Bar Under Banner Image */}
-          <div className="mt-4 pt-3 border-t border-amber-500/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2 text-amber-400 font-semibold">
-              <span>🎬</span>
-              <span>All details &amp; text inside the banner are 100% visible and uncropped.</span>
-            </div>
-            <button
-              onClick={() => setPreviewImage("/images/banner.jpg")}
-              className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-4 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1"
+          {/* FULL IMAGE 2 CARD (/images/image2.jpeg) */}
+          <div
+            className={`rounded-3xl p-5 border shadow-2xl flex flex-col justify-between transition-all film-strip-border-top h-full ${
+              isDark ? "glass-card-gold-dark border-amber-500/40" : "glass-card-gold-light border-amber-400"
+            }`}
+          >
+            <div
+              onClick={() => setPreviewImage("/images/image2.jpeg")}
+              className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden border-2 border-amber-500/50 shadow-2xl cursor-pointer group bg-slate-950 flex-1"
             >
-              <span>Enlarge Full Screen View</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 3h6m0 0v6m0-6L14 10M9 21H3m0 0v-6m0 6l7-7" />
-              </svg>
-            </button>
+              <Image
+                src="/images/image2.jpeg"
+                alt="Script Doctor Tamil Gen Z Storytelling Guide"
+                fill
+                className="object-contain transform group-hover:scale-[1.02] transition-transform duration-500"
+                priority
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center pointer-events-none">
+                <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-amber-500 text-slate-950 font-black text-xs px-4 py-2 rounded-full shadow-2xl flex items-center gap-1.5 transform group-hover:scale-105">
+                  🔍 Click to Inspect Full Image
+                </span>
+              </div>
+            </div>
+            <div className="w-full mt-4 pt-3 border-t border-amber-500/20 flex items-center justify-between text-xs font-bold text-amber-400 flex-shrink-0">
+              <span>Visual Guide 02 • Gen Z Cinema Storytelling</span>
+              <span className="text-slate-400 font-mono">100% Equal Height</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* AUTOPLAY MASTERCLASS VIDEO SECTION (FULL WIDTH SINGLE VIDEO PLAYER) */}
+      <section
+        id="hero-video"
+        ref={heroVideoSectionRef}
+        className="py-16 px-4 sm:px-6 max-w-6xl mx-auto border-t border-slate-800/40 relative z-10 space-y-8"
+      >
+        {/* Section Header */}
+        <div className="text-center max-w-2xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/30 text-xs font-bold uppercase tracking-wider mb-2">
+            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+            Official YouTube Masterclass
+          </div>
+          <h2 className={`text-3xl sm:text-4xl font-black tracking-tight ${isDark ? "text-slate-100" : "text-slate-900"}`}>
+            Script Doctor Tamil Full Masterclass Breakdown
+          </h2>
+          <p className={`text-sm sm:text-base mt-2 ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+            Autoplays automatically when active in the section and pauses when you scroll down.
+          </p>
+        </div>
+
+        {/* FULL WIDTH MASTERCLASS VIDEO CARD (P9T3a2-Onjc) */}
+        <div className="w-full">
+          <div
+            className={`rounded-3xl p-5 sm:p-8 border shadow-2xl flex flex-col justify-between transition-colors ${
+              isDark
+                ? "glass-card-gold-dark border-amber-500/30"
+                : "glass-card-gold-light border-amber-300"
+            }`}
+          >
+            <div className="w-full mb-4 flex items-center justify-between gap-2 px-4 py-2 rounded-xl bg-slate-950/80 border border-amber-500/30 text-xs">
+              <span className="flex items-center gap-1.5 font-semibold text-amber-400 truncate">
+                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isVideoPlaying ? "bg-emerald-500 animate-pulse" : "bg-slate-500"}`} />
+                {isVideoPlaying ? "Autoplay Active" : "Paused"}
+              </span>
+
+              <button
+                onClick={toggleVideo2Mute}
+                className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold px-3 py-1 rounded-lg border border-amber-500/40 transition-colors flex items-center gap-1 cursor-pointer flex-shrink-0"
+              >
+                {isVideo2Muted ? "🔊 Sound On" : "🔇 Mute"}
+              </button>
+            </div>
+
+            <h3 className={`text-lg font-bold mb-3 ${isDark ? "text-slate-100" : "text-slate-900"}`}>
+              🎬 Full Screenwriting Masterclass Breakdown
+            </h3>
+
+            {/* YouTube Main Video Frame (16:9 Aspect Full Width) */}
+            <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden border-4 border-amber-500/60 shadow-2xl bg-black my-2">
+              <iframe
+                ref={videoIframeRef2}
+                src="https://www.youtube.com/embed/P9T3a2-Onjc?enablejsapi=1&autoplay=1&mute=1&loop=1&playlist=P9T3a2-Onjc&rel=0&controls=1"
+                title="Script Doctor Tamil YouTube Video"
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+
+            <div className="mt-5 flex justify-center">
+              <a
+                href="https://www.youtube.com/watch?v=P9T3a2-Onjc"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-6 py-2.5 rounded-full shadow-lg transition-all transform hover:scale-105"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                </svg>
+                <span>Watch Full Masterclass on YouTube</span>
+              </a>
+            </div>
           </div>
         </div>
       </section>
@@ -571,18 +726,18 @@ export default function Home() {
       {/* ADDITIONAL BOOK VISUAL & SPECS PREVIEW SECTION */}
       <section id="preview" className="py-16 px-4 sm:px-6 max-w-6xl mx-auto border-t border-slate-800/40">
         <div
-          className={`rounded-3xl p-8 sm:p-12 border relative overflow-hidden transition-colors ${
+          className={`rounded-3xl p-8 sm:p-12 lg:p-14 border relative overflow-hidden transition-colors ${
             isDark
               ? "glass-card-dark border-slate-800"
               : "glass-card-light border-amber-200"
           }`}
         >
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
             
             <div className="lg:col-span-5 flex justify-center">
               <div
                 onClick={() => setPreviewImage("/images/image.jpeg")}
-                className="relative w-full max-w-sm aspect-[9/13] rounded-2xl overflow-hidden border-2 border-amber-500/40 shadow-2xl cursor-pointer group bg-slate-950"
+                className="relative w-full max-w-md aspect-[9/13] rounded-2xl overflow-hidden border-2 border-amber-500/40 shadow-2xl cursor-pointer group bg-slate-950"
               >
                 <Image
                   src="/images/image.jpeg"
@@ -649,7 +804,7 @@ export default function Home() {
                   onClick={scrollToCheckout}
                   className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm px-6 py-3 rounded-xl shadow-md transition-all cursor-pointer"
                 >
-                  Get Instant Download • ₹333
+                  Get Instant Download • ₹399
                 </button>
               </div>
             </div>
@@ -809,9 +964,9 @@ export default function Home() {
       </section>
 
       {/* CHECKOUT SECTION */}
-      <section id="checkout-section" className="py-20 px-4 sm:px-6 max-w-5xl mx-auto scroll-mt-20">
+      <section id="checkout-section" className="py-20 px-4 sm:px-6 max-w-6xl mx-auto scroll-mt-20">
         <div
-          className={`rounded-3xl p-6 sm:p-10 border shadow-2xl relative overflow-hidden transition-colors ${
+          className={`rounded-3xl p-6 sm:p-10 lg:p-12 border shadow-2xl relative overflow-hidden transition-colors ${
             isDark
               ? "glass-card-gold-dark border-amber-500/30"
               : "glass-card-gold-light border-amber-400"
@@ -826,7 +981,7 @@ export default function Home() {
               Get Your Copy Now
             </h2>
             <p className={isDark ? "text-slate-400 text-sm mt-2" : "text-slate-600 text-sm mt-2"}>
-              Fill in your details below to proceed with the secure payment of ₹333.
+              Fill in your details below to proceed with the secure payment of ₹399.
             </p>
           </div>
 
@@ -871,7 +1026,7 @@ export default function Home() {
               >
                 <div className="flex justify-between">
                   <span className="text-slate-400">Subtotal</span>
-                  <span>₹333.00</span>
+                  <span>₹399.00</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Delivery</span>
@@ -883,7 +1038,7 @@ export default function Home() {
                   }`}
                 >
                   <span>Total Amount</span>
-                  <span className="text-amber-500 text-xl font-black">₹333.00</span>
+                  <span className="text-amber-500 text-xl font-black">₹399.00</span>
                 </div>
               </div>
 
@@ -1010,7 +1165,7 @@ export default function Home() {
                       Processing Secure Payment...
                     </span>
                   ) : (
-                    <span>Make Payment • ₹333</span>
+                    <span>Make Payment • ₹399</span>
                   )}
                 </button>
 
@@ -1032,9 +1187,9 @@ export default function Home() {
       </section>
 
       {/* AUTHOR & CREATOR SPOTLIGHT */}
-      <section id="author" className="py-16 px-4 sm:px-6 max-w-4xl mx-auto">
+      <section id="author" className="py-16 px-4 sm:px-6 max-w-6xl mx-auto">
         <div
-          className={`rounded-3xl p-8 sm:p-10 border relative overflow-hidden flex flex-col sm:flex-row items-center gap-8 ${
+          className={`rounded-3xl p-8 sm:p-12 border relative overflow-hidden flex flex-col sm:flex-row items-center gap-8 sm:gap-12 ${
             isDark ? "glass-card-dark border-slate-800" : "glass-card-light border-amber-200"
           }`}
         >
@@ -1054,8 +1209,34 @@ export default function Home() {
               Empowering independent Tamil screenwriters, short filmmakers, and Gen Z digital creators with structured storytelling frameworks, film script analysis, and modern screenplay mastery.
             </p>
 
-            {/* Email Contact Button */}
+            {/* Social links & Email Contact Button */}
             <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-3">
+              {/* Instagram link */}
+              <a
+                href="https://www.instagram.com/scriptdoctor.tamil/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl text-white bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-90 shadow-md transition-all transform hover:scale-105"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                </svg>
+                <span>Instagram</span>
+              </a>
+
+              {/* YouTube link */}
+              <a
+                href="https://www.youtube.com/@scriptdoctortamil"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl text-white bg-red-600 hover:bg-red-700 shadow-md transition-all transform hover:scale-105"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                </svg>
+                <span>YouTube</span>
+              </a>
+
               <a
                 href="mailto:ScriptDoctortamil@gmail.com"
                 className={`inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-xl border transition-colors ${
@@ -1090,7 +1271,7 @@ export default function Home() {
       </section>
 
       {/* FREQUENTLY ASKED QUESTIONS */}
-      <section id="faqs" className="py-16 px-4 sm:px-6 max-w-4xl mx-auto border-t border-slate-800/40">
+      <section id="faqs" className="py-16 px-4 sm:px-6 max-w-6xl mx-auto border-t border-slate-800/40">
         <div className="text-center max-w-xl mx-auto mb-12">
           <h2 className="text-xs uppercase tracking-widest text-amber-500 font-bold mb-2">Got Questions?</h2>
           <p className={`text-3xl font-extrabold tracking-tight ${isDark ? "text-slate-100" : "text-slate-900"}`}>
@@ -1158,7 +1339,31 @@ export default function Home() {
             &copy; {new Date().getFullYear()} Script Doctor Tamil. Kill the Cat - E Book (Tamil &amp; English). All rights reserved.
           </p>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-center md:justify-end gap-3">
+            <a
+              href="https://www.instagram.com/scriptdoctor.tamil/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white font-bold hover:opacity-90 transition-opacity"
+            >
+              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+              </svg>
+              <span>Instagram</span>
+            </a>
+
+            <a
+              href="https://www.youtube.com/@scriptdoctortamil"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+              </svg>
+              <span>YouTube</span>
+            </a>
+
             <a href="mailto:ScriptDoctortamil@gmail.com" className="hover:text-amber-500 transition-colors">
               Support: ScriptDoctortamil@gmail.com
             </a>
@@ -1224,7 +1429,7 @@ export default function Home() {
               <p><strong className="text-slate-400">Order ID:</strong> #SDT-KILLCAT-{Math.floor(100000 + Math.random() * 900000)}</p>
               <p><strong className="text-slate-400">Sent To:</strong> {formData.email}</p>
               <p><strong className="text-slate-400">File:</strong> Kill the Cat E-Book (3.07 MB PDF)</p>
-              <p><strong className="text-slate-400">Amount Paid:</strong> ₹333</p>
+              <p><strong className="text-slate-400">Amount Paid:</strong> ₹399</p>
             </div>
 
             <a
@@ -1258,13 +1463,13 @@ export default function Home() {
       >
         <div>
           <span className="text-xs text-slate-400 block leading-tight">Kill the Cat E-Book</span>
-          <span className="text-lg font-black text-amber-500">₹333</span>
+          <span className="text-lg font-black text-amber-500">₹399</span>
         </div>
         <button
           onClick={scrollToCheckout}
           className="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-extrabold text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-amber-500/20 cursor-pointer"
         >
-          Buy Now ₹333
+          Buy Now ₹399
         </button>
       </div>
 
