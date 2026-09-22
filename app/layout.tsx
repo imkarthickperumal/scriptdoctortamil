@@ -17,9 +17,9 @@ export const metadata: Metadata = {
   description: "Learn detailed film story development, screenplay writing, short film scripting, YouTube hooks, and Instagram Reels scripting in Tamil and English.",
   keywords: ["Kill the Cat Ebook", "Script Doctor Tamil", "Screenwriting Tamil", "Gen Z Thiraikathai", "Film Scripting PDF", "Tamil Cinema Screenplay"],
   icons: {
-    icon: "/images/logo.png",
-    shortcut: "/images/logo.png",
-    apple: "/images/logo.png",
+    icon: "/images/logo.jpeg",
+    shortcut: "/images/logo.jpeg",
+    apple: "/images/logo.jpeg",
   },
 };
 
@@ -31,9 +31,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} scroll-smooth`}>
       <head>
-        <link rel="icon" href="/images/logo.png" type="image/png" />
-        <link rel="shortcut icon" href="/images/logo.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/images/logo.png" />
+        <link rel="icon" href="/images/logo.jpeg" type="image/jpeg" />
+        <link rel="shortcut icon" href="/images/logo.jpeg" type="image/jpeg" />
+        <link rel="apple-touch-icon" href="/images/logo.jpeg" />
       </head>
       <body className="min-h-screen font-sans antialiased selection:bg-amber-500 selection:text-black transition-colors duration-300">
         {children}

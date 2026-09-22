@@ -127,7 +127,13 @@ export default function Home() {
   };
 
   const scrollToCheckout = () => {
-    document.getElementById("checkout-section")?.scrollIntoView({ behavior: "smooth" });
+    const checkoutEl = document.getElementById("checkout-section");
+    if (checkoutEl) {
+      checkoutEl.scrollIntoView({ behavior: "smooth" });
+      setTimeout(() => {
+        document.getElementById("email")?.focus({ preventScroll: true });
+      }, 400);
+    }
   };
 
   const faqs = [
@@ -201,7 +207,7 @@ export default function Home() {
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full overflow-hidden border-2 border-amber-500/60 shadow-lg shadow-amber-500/20 bg-slate-900 flex-shrink-0">
               <Image
-                src="/images/logo.png"
+                src="/images/logo.jpeg"
                 alt="Script Doctor Tamil Logo"
                 fill
                 className="object-cover"
@@ -339,7 +345,7 @@ export default function Home() {
               }`}
             >
               <div className="relative w-8 h-8 rounded-full overflow-hidden border border-amber-500/50 flex-shrink-0">
-                <Image src="/images/logo.png" alt="Script Doctor Tamil" fill className="object-cover" />
+                <Image src="/images/logo.jpeg" alt="Script Doctor Tamil" fill className="object-cover" />
               </div>
               <span className="text-sm font-medium">
                 Created by <strong className="text-amber-500 font-bold">Script Doctor Tamil</strong>
@@ -1195,7 +1201,7 @@ export default function Home() {
         >
           
           <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-4 border-amber-500/60 shadow-xl shadow-amber-500/20 flex-shrink-0 bg-slate-900">
-            <Image src="/images/logo.png" alt="Script Doctor Tamil Logo" fill className="object-cover" />
+            <Image src="/images/logo.jpeg" alt="Script Doctor Tamil Logo" fill className="object-cover" />
           </div>
 
           <div className="text-center sm:text-left flex-1 space-y-3">
@@ -1328,7 +1334,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <div className="relative w-8 h-8 rounded-full overflow-hidden border border-amber-500/40">
-              <Image src="/images/logo.png" alt="Script Doctor Tamil" fill className="object-cover" />
+              <Image src="/images/logo.jpeg" alt="Script Doctor Tamil" fill className="object-cover" />
             </div>
             <span className={`font-bold text-sm ${isDark ? "text-slate-200" : "text-slate-900"}`}>
               Script Doctor Tamil
