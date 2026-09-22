@@ -123,10 +123,10 @@ export default function Home() {
 
   // Reusable Hero Video Component using P9T3a2-Onjc
   const HeroVideoCard = () => (
-    <div className="relative w-full max-w-md lg:max-w-none mx-auto group h-full flex flex-col">
+    <div className="relative w-full max-w-md lg:max-w-none mx-auto group flex flex-col">
       <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-rose-400 to-amber-500 rounded-3xl blur-xl opacity-40 group-hover:opacity-70 transition duration-700 animate-pulse-glow" />
       
-      <div className="relative rounded-2xl p-3 sm:p-4 border shadow-2xl overflow-hidden bg-white border-amber-300 shadow-amber-500/20 h-full flex flex-col justify-between">
+      <div className="relative rounded-2xl p-3 sm:p-4 border shadow-2xl overflow-hidden bg-white border-amber-300 shadow-amber-500/20 flex flex-col">
         {/* Tamil Cinema Clapper Header */}
         <div className="bg-slate-950 text-amber-400 text-[11px] font-mono font-bold px-3 py-1.5 rounded-lg mb-2.5 flex items-center justify-between border border-amber-500/30 flex-shrink-0">
           <span className="flex items-center gap-1.5 truncate">
@@ -150,8 +150,8 @@ export default function Home() {
           </button>
         </div>
 
-        {/* YouTube Masterclass Video Player Frame (Stretches to fill full height equal to left column) */}
-        <div className="relative flex-1 w-full min-h-[260px] sm:min-h-[300px] lg:min-h-[360px] rounded-xl overflow-hidden border-2 border-amber-500/60 shadow-2xl bg-black my-2">
+        {/* YouTube Masterclass Video Player Frame - EXACT 16:9 ratio so video occupies full with no black bar */}
+        <div className="relative aspect-video w-full rounded-xl overflow-hidden border-2 border-amber-500/60 shadow-2xl bg-black my-1 sm:my-2">
           <iframe
             ref={videoIframeRef1}
             src="https://www.youtube.com/embed/P9T3a2-Onjc?enablejsapi=1&autoplay=1&mute=1&loop=1&playlist=P9T3a2-Onjc&rel=0&controls=1"
@@ -163,7 +163,7 @@ export default function Home() {
         </div>
 
         {/* Book & Video Meta Bar */}
-        <div className="mt-3 pt-2.5 border-t border-amber-100 flex items-center justify-between text-xs text-slate-600 flex-shrink-0">
+        <div className="mt-2.5 pt-2.5 border-t border-amber-100 flex items-center justify-between text-xs text-slate-600 flex-shrink-0">
           <span className="flex items-center gap-1 font-medium text-[11px] sm:text-xs">
             <svg className="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -410,8 +410,8 @@ export default function Home() {
           </div>
         </div>
 
-        {/* DESKTOP VIEW LAYOUT (PROPORTIONAL 2-COLUMN SIDE BY SIDE WITH EQUAL HEIGHT) */}
-        <div className="hidden lg:grid grid-cols-12 gap-12 items-stretch">
+        {/* DESKTOP VIEW LAYOUT (PROPORTIONAL 2-COLUMN SIDE BY SIDE) */}
+        <div className="hidden lg:grid grid-cols-12 gap-12 items-center">
           
           {/* Left Hero Text Column */}
           <div className="col-span-7 flex flex-col items-start gap-6">
@@ -518,7 +518,7 @@ export default function Home() {
           </div>
 
           {/* Right Hero Column: YouTube Masterclass Video Card (P9T3a2-Onjc) */}
-          <div className="col-span-5 flex flex-col items-center w-full h-full">
+          <div className="col-span-5 flex flex-col items-center w-full">
             <HeroVideoCard />
           </div>
 
