@@ -92,7 +92,7 @@ function HeroVideoCard({ iframeRef }: HeroVideoCardProps) {
         <div className="relative aspect-video lg:aspect-auto lg:flex-1 lg:h-full min-h-[220px] sm:min-h-[260px] w-full rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-2xl bg-black">
           <iframe
             ref={iframeRef}
-            src="https://www.youtube.com/embed/P9T3a2-Onjc?enablejsapi=1&autoplay=1&mute=0&playsinline=1&loop=1&playlist=P9T3a2-Onjc&rel=0&controls=1"
+            src="https://www.youtube.com/embed/P9T3a2-Onjc?enablejsapi=1&autoplay=1&mute=1&playsinline=1&loop=1&playlist=P9T3a2-Onjc&rel=0&controls=1"
             title="Script Doctor Tamil YouTube Masterclass"
             className="w-full h-full border-0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -241,13 +241,17 @@ export default function Home() {
     };
 
     startHeroPlayback();
-    const t1 = setTimeout(startHeroPlayback, 300);
-    const t2 = setTimeout(startHeroPlayback, 800);
-    const t3 = setTimeout(startHeroPlayback, 1500);
+    const t1 = setTimeout(startHeroPlayback, 200);
+    const t2 = setTimeout(startHeroPlayback, 600);
+    const t3 = setTimeout(startHeroPlayback, 1200);
+    const t4 = setTimeout(startHeroPlayback, 2400);
 
     // On mobile devices (iOS/Android), audio unmuting requires a user gesture.
     // As soon as the user touches the screen, taps, or scrolls:
+    let gestureCount = 0;
     const handleGesture = () => {
+      if (gestureCount >= 4) return;
+      gestureCount++;
       hasUserInteractedRef.current = true;
       if (isHeroInViewRef.current) {
         postToHero("playVideo", []);
@@ -256,21 +260,16 @@ export default function Home() {
       }
     };
 
-    window.addEventListener("scroll", handleGesture, {
-      passive: true,
-      once: true,
-    });
-    window.addEventListener("touchstart", handleGesture, {
-      passive: true,
-      once: true,
-    });
-    window.addEventListener("pointerdown", handleGesture, { once: true });
-    window.addEventListener("click", handleGesture, { once: true });
+    window.addEventListener("scroll", handleGesture, { passive: true });
+    window.addEventListener("touchstart", handleGesture, { passive: true });
+    window.addEventListener("pointerdown", handleGesture);
+    window.addEventListener("click", handleGesture);
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
+      clearTimeout(t4);
       window.removeEventListener("scroll", handleGesture);
       window.removeEventListener("touchstart", handleGesture);
       window.removeEventListener("pointerdown", handleGesture);
@@ -295,7 +294,7 @@ export default function Home() {
           }
         });
       },
-      { threshold: 0.15 },
+      { threshold: 0.1 },
     );
 
     if (heroSectionRef.current) {
