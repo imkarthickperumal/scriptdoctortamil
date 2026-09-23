@@ -1,33 +1,76 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 
 const PAYMENT_URL =
   "https://superprofile.bio/vp/kill-the-cat--tamil---english-?checkout=true";
 
-// 5-Minute Urgency Offer Countdown Timer for Reader Feedback Section
-function OfferCountdownTimer() {
-  const [secondsLeft, setSecondsLeft] = useState(300); // 5 minutes (300 seconds)
+// Synchronized 5-minute countdown (300 seconds)
+const TIMER_CYCLE_MS = 5 * 60 * 1000;
+
+function use5MinuteCountdown() {
+  const [secondsLeft, setSecondsLeft] = useState(300);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setSecondsLeft((prev) => (prev > 0 ? prev - 1 : 300));
-    }, 1000);
-    return () => clearInterval(timer);
+    const SESSION_KEY = "sd_5min_timer_start";
+    let startTime = 0;
+    try {
+      const stored = sessionStorage.getItem(SESSION_KEY);
+      if (stored) {
+        startTime = parseInt(stored, 10);
+      }
+      if (!startTime || isNaN(startTime)) {
+        startTime = Date.now();
+        sessionStorage.setItem(SESSION_KEY, startTime.toString());
+      }
+    } catch {
+      startTime = Date.now();
+    }
+
+    const calculateRemaining = () => {
+      const elapsedMs = (Date.now() - startTime) % TIMER_CYCLE_MS;
+      const remainingSec = Math.max(
+        1,
+        Math.floor((TIMER_CYCLE_MS - elapsedMs) / 1000),
+      );
+      setSecondsLeft(remainingSec);
+    };
+
+    calculateRemaining();
+    const interval = setInterval(calculateRemaining, 1000);
+    return () => clearInterval(interval);
   }, []);
 
   const mins = Math.floor(secondsLeft / 60);
   const secs = secondsLeft % 60;
-  const timeFormatted = `${mins.toString().padStart(2, "0")}m : ${secs.toString().padStart(2, "0")}s`;
+  return `${mins.toString().padStart(2, "0")}m : ${secs.toString().padStart(2, "0")}s`;
+}
+
+function OfferCountdownTimer({ compact = false }: { compact?: boolean }) {
+  const timeFormatted = use5MinuteCountdown();
+
+  if (compact) {
+    return (
+      <div className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-xs font-bold text-slate-900 shadow-sm flex-shrink-0">
+        <span className="text-[11px] sm:text-xs">⏳</span>
+        <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wide text-amber-900 whitespace-nowrap">
+          Ends:
+        </span>
+        <span className="font-mono text-[10px] sm:text-[11px] font-black text-rose-600 bg-white px-1.5 py-0.5 rounded border border-amber-300 shadow-inner">
+          {timeFormatted}
+        </span>
+      </div>
+    );
+  }
 
   return (
-    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/35 text-xs font-bold text-slate-900 shadow-sm flex-shrink-0">
-      <span className="text-sm">⏳</span>
-      <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-900">
+    <div className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-amber-500/15 border border-amber-500/35 text-xs font-bold text-slate-900 shadow-sm flex-shrink-0">
+      <span className="text-xs sm:text-sm">⏳</span>
+      <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-amber-900 whitespace-nowrap">
         Offer Ends In:
       </span>
-      <span className="font-mono text-xs font-black text-rose-600 bg-white px-2 py-0.5 rounded-md border border-amber-300 shadow-inner">
+      <span className="font-mono text-[11px] sm:text-xs font-black text-rose-600 bg-white px-1.5 sm:px-2 py-0.5 rounded-md border border-amber-300 shadow-inner">
         {timeFormatted}
       </span>
     </div>
@@ -37,17 +80,9 @@ function OfferCountdownTimer() {
 // Reusable Hero Video Component using P9T3a2-Onjc
 interface HeroVideoCardProps {
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
-  isPlaying: boolean;
-  isMuted: boolean;
-  onToggleMute: () => void;
 }
 
-function HeroVideoCard({
-  iframeRef,
-  isPlaying,
-  isMuted,
-  onToggleMute,
-}: HeroVideoCardProps) {
+function HeroVideoCard({ iframeRef }: HeroVideoCardProps) {
   return (
     <div className="relative w-full max-w-md lg:max-w-none mx-auto group flex flex-col h-full">
       <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-rose-400 to-amber-500 rounded-3xl blur-xl opacity-40 group-hover:opacity-70 transition duration-700 animate-pulse-glow" />
@@ -57,29 +92,12 @@ function HeroVideoCard({
         <div className="relative aspect-video lg:aspect-auto lg:flex-1 lg:h-full min-h-[220px] sm:min-h-[260px] w-full rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-2xl bg-black">
           <iframe
             ref={iframeRef}
-            src="https://www.youtube.com/embed/P9T3a2-Onjc?enablejsapi=1&autoplay=1&mute=1&loop=1&playlist=P9T3a2-Onjc&rel=0&controls=1"
+            src="https://www.youtube.com/embed/P9T3a2-Onjc?enablejsapi=1&autoplay=1&mute=0&loop=1&playlist=P9T3a2-Onjc&rel=0&controls=1"
             title="Script Doctor Tamil YouTube Masterclass"
             className="w-full h-full border-0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
           />
-        </div>
-
-        {/* Video Status & Sound Toggle Control Bar - Placed at Video Bottom */}
-        <div className="w-full mt-3 flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-slate-900 border border-amber-500/30 text-xs text-white flex-shrink-0">
-          <span className="flex items-center gap-1.5 font-semibold text-amber-400 truncate text-[11px] sm:text-xs">
-            <span
-              className={`w-2 h-2 rounded-full flex-shrink-0 ${isPlaying ? "bg-emerald-500 animate-pulse" : "bg-slate-500"}`}
-            />
-            {isPlaying ? "Autoplay Active" : "Paused"}
-          </span>
-
-          <button
-            onClick={onToggleMute}
-            className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold px-3 py-1 rounded-md border border-amber-500/40 transition-colors flex items-center gap-1 cursor-pointer text-[11px] sm:text-xs flex-shrink-0"
-          >
-            {isMuted ? "🔊 Sound On" : "🔇 Mute"}
-          </button>
         </div>
       </div>
     </div>
@@ -89,31 +107,37 @@ function HeroVideoCard({
 // Reusable Price & Buy Action Bar Component
 function PriceActionBar() {
   return (
-    <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-3.5 pt-1 sm:pt-2">
-      <div className="w-full sm:w-auto flex items-baseline justify-center sm:justify-start gap-2 sm:gap-2.5 px-3.5 sm:px-4 xl:px-5 py-2.5 sm:py-3 rounded-2xl border bg-amber-50 border-amber-200 shadow-sm flex-shrink-0">
-        <span className="text-2xl sm:text-3xl xl:text-4xl font-black text-amber-600">
-          ₹333
-        </span>
-        <span className="line-through text-xs sm:text-sm xl:text-base text-slate-400 font-bold">
-          ₹500
-        </span>
-        <span className="bg-rose-500/20 text-rose-700 text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-md border border-rose-500/30">
-          SAVE ₹167
-        </span>
+    <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 pt-1">
+      {/* Compact Urgency Timer & Cost Box */}
+      <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-2.5 px-3 py-2 rounded-xl border bg-amber-50/90 border-amber-200 shadow-sm flex-shrink-0">
+        {/* 5-Min Urgency Timer */}
+        <OfferCountdownTimer compact />
+        <div className="flex items-baseline gap-1 sm:gap-1.5">
+          <span className="text-xl sm:text-2xl font-black text-amber-600">
+            ₹333
+          </span>
+          <span className="line-through text-[11px] sm:text-xs text-slate-400 font-bold">
+            ₹500
+          </span>
+          <span className="bg-rose-500/20 text-rose-700 text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded border border-rose-500/30 whitespace-nowrap">
+            SAVE ₹167
+          </span>
+        </div>
       </div>
 
+      {/* Compact Get E-Book CTA Button on Same Line in Webview */}
       <a
         href={PAYMENT_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="w-full sm:flex-1 min-w-0 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-sm sm:text-base xl:text-lg px-4 sm:px-5 xl:px-8 py-3.5 sm:py-4 rounded-2xl shadow-xl shadow-amber-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 sm:gap-2.5 cursor-pointer whitespace-nowrap"
+        className="flex-1 min-w-0 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs sm:text-sm px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl shadow-lg shadow-amber-500/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer whitespace-nowrap"
       >
         <span>Get E-Book • ₹333</span>
-        <span className="line-through text-slate-800/60 text-xs sm:text-sm font-semibold">
+        <span className="line-through text-slate-800/60 text-[10px] sm:text-xs font-semibold">
           ₹500
         </span>
         <svg
-          className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
+          className="w-4 h-4 flex-shrink-0"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -145,38 +169,91 @@ export default function Home() {
 
   const [isHeroVideoPlaying, setIsHeroVideoPlaying] = useState(true);
   const [isFeedbackVideoPlaying, setIsFeedbackVideoPlaying] = useState(false);
-  const [isVideo1Muted, setIsVideo1Muted] = useState(true);
+  // Default hero section video sound ON
+  const [isVideo1Muted, setIsVideo1Muted] = useState(false);
+  // Default reader feedback video sound OFF until reached
   const [isVideo3Muted, setIsVideo3Muted] = useState(true);
 
+  // Helper to send postMessage commands to BOTH Desktop and Mobile Hero Video iframes
+  const postToHero = useCallback((func: string, args: any = "") => {
+    const msg = JSON.stringify({ event: "command", func, args });
+    heroVideoIframeRefDesktop.current?.contentWindow?.postMessage(msg, "*");
+    heroVideoIframeRefMobile.current?.contentWindow?.postMessage(msg, "*");
+  }, []);
+
+  // Helper to send postMessage commands to Reader Feedback Video iframe
+  const postToFeedback = useCallback((func: string, args: any = "") => {
+    const msg = JSON.stringify({ event: "command", func, args });
+    videoIframeRef3.current?.contentWindow?.postMessage(msg, "*");
+  }, []);
+
+  // Track active visibility state across observer callbacks
+  const isHeroInViewRef = useRef(true);
+  const isFeedbackInViewRef = useRef(false);
+
   useEffect(() => {
-    // Hero Section Observer
+    // Initial load: Attempt sound unmuting with retry steps
+    const tryUnmuteHero = () => {
+      if (isHeroInViewRef.current) {
+        postToHero("playVideo");
+        postToHero("unMute");
+        postToHero("setVolume", [100]);
+        setIsHeroVideoPlaying(true);
+        setIsVideo1Muted(false);
+      }
+    };
+
+    const t1 = setTimeout(tryUnmuteHero, 500);
+    const t2 = setTimeout(tryUnmuteHero, 1200);
+    const t3 = setTimeout(tryUnmuteHero, 2200);
+
+    // If browser blocks unmuted audio prior to user gesture, unmute on first gesture
+    const handleFirstGesture = () => {
+      if (isHeroInViewRef.current) {
+        tryUnmuteHero();
+      }
+    };
+
+    window.addEventListener("scroll", handleFirstGesture, {
+      passive: true,
+      once: true,
+    });
+    window.addEventListener("click", handleFirstGesture, { once: true });
+    window.addEventListener("touchstart", handleFirstGesture, {
+      passive: true,
+      once: true,
+    });
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      window.removeEventListener("scroll", handleFirstGesture);
+      window.removeEventListener("click", handleFirstGesture);
+      window.removeEventListener("touchstart", handleFirstGesture);
+    };
+  }, [postToHero]);
+
+  useEffect(() => {
+    // Hero Section Observer: Sound ON & Play when in hero section, Sound OFF & Pause when scrolled away
     const heroObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          const mobileWindow = heroVideoIframeRefMobile.current?.contentWindow;
-          const desktopWindow =
-            heroVideoIframeRefDesktop.current?.contentWindow;
-          const targetWindow = desktopWindow || mobileWindow;
           if (entry.isIntersecting) {
-            targetWindow?.postMessage(
-              JSON.stringify({
-                event: "command",
-                func: "playVideo",
-                args: "",
-              }),
-              "*",
-            );
+            isHeroInViewRef.current = true;
+            // User in Hero Section -> Sound ON & Play
+            postToHero("playVideo");
+            postToHero("unMute");
+            postToHero("setVolume", [100]);
             setIsHeroVideoPlaying(true);
+            setIsVideo1Muted(false);
           } else {
-            targetWindow?.postMessage(
-              JSON.stringify({
-                event: "command",
-                func: "pauseVideo",
-                args: "",
-              }),
-              "*",
-            );
+            isHeroInViewRef.current = false;
+            // User scrolled down away from Hero Section -> Sound OFF & Pause
+            postToHero("mute");
+            postToHero("pauseVideo");
             setIsHeroVideoPlaying(false);
+            setIsVideo1Muted(true);
           }
         });
       },
@@ -187,31 +264,36 @@ export default function Home() {
       heroObserver.observe(heroSectionRef.current);
     }
 
-    // Reader Feedback Section Observer
+    // Reader Feedback Section Observer: Sound ON & Play ONLY when at feedback section, OFF when scrolled away
     const feedbackObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          const feedbackWindow = videoIframeRef3.current?.contentWindow;
           if (entry.isIntersecting) {
-            feedbackWindow?.postMessage(
-              JSON.stringify({
-                event: "command",
-                func: "playVideo",
-                args: "",
-              }),
-              "*",
-            );
+            isFeedbackInViewRef.current = true;
+            // User reached Reader Feedback -> Sound ON & Play
+            postToFeedback("playVideo");
+            postToFeedback("unMute");
+            postToFeedback("setVolume", [100]);
+            setTimeout(() => {
+              postToFeedback("playVideo");
+              postToFeedback("unMute");
+              postToFeedback("setVolume", [100]);
+            }, 300);
             setIsFeedbackVideoPlaying(true);
+            setIsVideo3Muted(false);
+
+            // Ensure Hero video is muted and paused
+            postToHero("mute");
+            postToHero("pauseVideo");
+            setIsHeroVideoPlaying(false);
+            setIsVideo1Muted(true);
           } else {
-            feedbackWindow?.postMessage(
-              JSON.stringify({
-                event: "command",
-                func: "pauseVideo",
-                args: "",
-              }),
-              "*",
-            );
+            isFeedbackInViewRef.current = false;
+            // User scrolled away from Reader Feedback -> Sound OFF & Pause
+            postToFeedback("mute");
+            postToFeedback("pauseVideo");
             setIsFeedbackVideoPlaying(false);
+            setIsVideo3Muted(true);
           }
         });
       },
@@ -226,32 +308,7 @@ export default function Home() {
       heroObserver.disconnect();
       feedbackObserver.disconnect();
     };
-  }, []);
-
-  const toggleHeroVideoMute = () => {
-    const mobileWindow = heroVideoIframeRefMobile.current?.contentWindow;
-    const desktopWindow = heroVideoIframeRefDesktop.current?.contentWindow;
-    const targetWindow = desktopWindow || mobileWindow;
-    if (targetWindow) {
-      const command = isVideo1Muted ? "unMute" : "mute";
-      targetWindow.postMessage(
-        JSON.stringify({ event: "command", func: command, args: "" }),
-        "*",
-      );
-      setIsVideo1Muted(!isVideo1Muted);
-    }
-  };
-
-  const toggleVideo3Mute = () => {
-    if (videoIframeRef3.current?.contentWindow) {
-      const command = isVideo3Muted ? "unMute" : "mute";
-      videoIframeRef3.current.contentWindow.postMessage(
-        JSON.stringify({ event: "command", func: command, args: "" }),
-        "*",
-      );
-      setIsVideo3Muted(!isVideo3Muted);
-    }
-  };
+  }, [postToHero, postToFeedback]);
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText("ScriptDoctortamil@gmail.com");
@@ -413,12 +470,7 @@ export default function Home() {
         <div className="flex lg:hidden flex-col items-center gap-5">
           {/* 1. YOUTUBE MASTERCLASS VIDEO FIRST ON MOBILE */}
           <div className="w-full">
-            <HeroVideoCard
-              iframeRef={heroVideoIframeRefMobile}
-              isPlaying={isHeroVideoPlaying}
-              isMuted={isVideo1Muted}
-              onToggleMute={toggleHeroVideoMute}
-            />
+            <HeroVideoCard iframeRef={heroVideoIframeRefMobile} />
           </div>
 
           {/* 2. GET EBOOK PRICE BUTTON SECOND ON MOBILE */}
@@ -745,12 +797,7 @@ export default function Home() {
 
           {/* Right Hero Column: Full Height YouTube Masterclass Video Card (P9T3a2-Onjc) */}
           <div className="col-span-5 h-full w-full flex flex-col">
-            <HeroVideoCard
-              iframeRef={heroVideoIframeRefDesktop}
-              isPlaying={isHeroVideoPlaying}
-              isMuted={isVideo1Muted}
-              onToggleMute={toggleHeroVideoMute}
-            />
+            <HeroVideoCard iframeRef={heroVideoIframeRefDesktop} />
           </div>
         </div>
       </section>
@@ -855,22 +902,6 @@ export default function Home() {
         <div className="w-full max-w-3xl lg:max-w-none mx-auto">
           <div className="rounded-3xl p-5 sm:p-7 border shadow-xl flex flex-col justify-between transition-colors glass-card-gold-light border-amber-300 bg-white">
             <div>
-              <div className="w-full mb-3 flex items-center justify-between gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900 text-white border border-amber-500/30 text-xs">
-                <span className="flex items-center gap-1.5 font-semibold text-amber-400 truncate text-xs">
-                  <span
-                    className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isFeedbackVideoPlaying ? "bg-emerald-500 animate-pulse" : "bg-slate-500"}`}
-                  />
-                  {isFeedbackVideoPlaying ? "Autoplay Active" : "Paused"}
-                </span>
-
-                <button
-                  onClick={toggleVideo3Mute}
-                  className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold px-2.5 py-0.5 rounded-md border border-amber-500/40 transition-colors flex items-center gap-1 cursor-pointer text-xs flex-shrink-0"
-                >
-                  {isVideo3Muted ? "🔊 Sound On" : "🔇 Mute"}
-                </button>
-              </div>
-
               <h3 className="text-base sm:text-lg font-bold mb-2.5 text-slate-900 flex items-center gap-2">
                 <span>💬</span> Reader Feedback &amp; Video Review
               </h3>
