@@ -134,8 +134,6 @@ function HeroVideoPlayer({
               if (!destroyed) {
                 try {
                   event.target.playVideo();
-                  event.target.unMute();
-                  event.target.setVolume(100);
                 } catch {
                   /* ignore */
                 }
@@ -286,8 +284,10 @@ export default function Home() {
     heroPlayerRef.current = player;
     try {
       player.playVideo();
-      player.unMute();
-      player.setVolume(100);
+      if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+        player.unMute();
+        player.setVolume(100);
+      }
     } catch {
       /* ignore */
     }
