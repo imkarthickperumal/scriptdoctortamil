@@ -103,7 +103,7 @@ function HeroVideoPlayer({ onPlayerReady }: HeroVideoPlayerProps) {
           height: "100%",
           playerVars: {
             autoplay: 1,
-            mute: 0,
+            mute: 1,
             playsinline: 1,
             loop: 1,
             playlist: "P9T3a2-Onjc",
@@ -114,8 +114,6 @@ function HeroVideoPlayer({ onPlayerReady }: HeroVideoPlayerProps) {
             onReady: (event: any) => {
               if (!destroyed) {
                 try {
-                  event.target.unMute();
-                  event.target.setVolume(100);
                   event.target.playVideo();
                 } catch {
                   /* ignore */
@@ -251,13 +249,15 @@ export default function Home() {
     return () => window.removeEventListener("resize", checkIsDesktop);
   }, []);
 
-  // Callback when YT.Player fires onReady — store reference and start unmuted playback
+  // Callback when YT.Player fires onReady — store reference and start playback
   const handleHeroPlayerReady = useCallback((player: any) => {
     heroPlayerRef.current = player;
     try {
-      player.unMute();
-      player.setVolume(100);
       player.playVideo();
+      if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+        player.unMute();
+        player.setVolume(100);
+      }
     } catch {
       /* ignore */
     }
