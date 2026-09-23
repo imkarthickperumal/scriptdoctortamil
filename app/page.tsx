@@ -80,9 +80,10 @@ function OfferCountdownTimer({ compact = false }: { compact?: boolean }) {
 // Reusable Hero Video Component using P9T3a2-Onjc
 interface HeroVideoCardProps {
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
+  isActive?: boolean;
 }
 
-function HeroVideoCard({ iframeRef }: HeroVideoCardProps) {
+function HeroVideoCard({ iframeRef, isActive = true }: HeroVideoCardProps) {
   return (
     <div className="relative w-full max-w-md lg:max-w-none mx-auto group flex flex-col h-full">
       <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-rose-400 to-amber-500 rounded-3xl blur-xl opacity-40 group-hover:opacity-70 transition duration-700 animate-pulse-glow" />
@@ -90,14 +91,22 @@ function HeroVideoCard({ iframeRef }: HeroVideoCardProps) {
       <div className="relative rounded-3xl p-3 sm:p-4 xl:p-5 border shadow-2xl overflow-hidden bg-white border-amber-300 shadow-amber-500/20 flex flex-col h-full justify-between">
         {/* YouTube Masterclass Video Player Frame - standard 16:9 on mobile, FULL HEIGHT on webview */}
         <div className="relative aspect-video lg:aspect-auto lg:flex-1 lg:h-full min-h-[220px] sm:min-h-[260px] w-full rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-2xl bg-black">
-          <iframe
-            ref={iframeRef}
-            src="https://www.youtube.com/embed/P9T3a2-Onjc?enablejsapi=1&autoplay=1&mute=0&loop=1&playlist=P9T3a2-Onjc&rel=0&controls=1"
-            title="Script Doctor Tamil YouTube Masterclass"
-            className="w-full h-full border-0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-          />
+          {isActive ? (
+            <iframe
+              ref={iframeRef}
+              src="https://www.youtube.com/embed/P9T3a2-Onjc?enablejsapi=1&autoplay=1&mute=0&loop=1&playlist=P9T3a2-Onjc&rel=0&controls=1"
+              title="Script Doctor Tamil YouTube Masterclass"
+              className="w-full h-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          ) : (
+            <div className="w-full h-full bg-slate-950 flex items-center justify-center">
+              <span className="text-amber-500 font-semibold text-xs">
+                Script Doctor Tamil Masterclass
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -167,22 +176,32 @@ export default function Home() {
   const heroSectionRef = useRef<HTMLDivElement>(null);
   const readerFeedbackSectionRef = useRef<HTMLDivElement>(null);
 
-  const [isHeroVideoPlaying, setIsHeroVideoPlaying] = useState(true);
-  const [isFeedbackVideoPlaying, setIsFeedbackVideoPlaying] = useState(false);
-  // Default hero section video sound ON
-  const [isVideo1Muted, setIsVideo1Muted] = useState(false);
-  // Default reader feedback video sound OFF until reached
-  const [isVideo3Muted, setIsVideo3Muted] = useState(true);
+  // Screen size detection so ONLY ONE hero video iframe exists in DOM
+  const [isDesktopView, setIsDesktopView] = useState(true);
 
-  // Helper to send postMessage commands to BOTH Desktop and Mobile Hero Video iframes
-  const postToHero = useCallback((func: string, args: any = "") => {
-    const msg = JSON.stringify({ event: "command", func, args });
-    heroVideoIframeRefDesktop.current?.contentWindow?.postMessage(msg, "*");
-    heroVideoIframeRefMobile.current?.contentWindow?.postMessage(msg, "*");
+  useEffect(() => {
+    const checkDesktop = () => {
+      setIsDesktopView(window.innerWidth >= 1024);
+    };
+    checkDesktop();
+    window.addEventListener("resize", checkDesktop);
+    return () => window.removeEventListener("resize", checkDesktop);
   }, []);
 
+  // Helper to send postMessage commands to ONLY the active Hero Video iframe
+  const postToHero = useCallback(
+    (func: string, args: any = []) => {
+      const msg = JSON.stringify({ event: "command", func, args });
+      const targetWindow = isDesktopView
+        ? heroVideoIframeRefDesktop.current?.contentWindow
+        : heroVideoIframeRefMobile.current?.contentWindow;
+      targetWindow?.postMessage(msg, "*");
+    },
+    [isDesktopView],
+  );
+
   // Helper to send postMessage commands to Reader Feedback Video iframe
-  const postToFeedback = useCallback((func: string, args: any = "") => {
+  const postToFeedback = useCallback((func: string, args: any = []) => {
     const msg = JSON.stringify({ event: "command", func, args });
     videoIframeRef3.current?.contentWindow?.postMessage(msg, "*");
   }, []);
@@ -191,15 +210,34 @@ export default function Home() {
   const isHeroInViewRef = useRef(true);
   const isFeedbackInViewRef = useRef(false);
 
+  // Functions to play/unmute and pause/mute cleanly preserving playback position
+  const playAndUnmuteHero = useCallback(() => {
+    postToHero("playVideo", []);
+    postToHero("unMute", []);
+    postToHero("setVolume", [100]);
+  }, [postToHero]);
+
+  const pauseAndMuteHero = useCallback(() => {
+    postToHero("pauseVideo", []);
+    postToHero("mute", []);
+  }, [postToHero]);
+
+  const playAndUnmuteFeedback = useCallback(() => {
+    postToFeedback("playVideo", []);
+    postToFeedback("unMute", []);
+    postToFeedback("setVolume", [100]);
+  }, [postToFeedback]);
+
+  const pauseAndMuteFeedback = useCallback(() => {
+    postToFeedback("pauseVideo", []);
+    postToFeedback("mute", []);
+  }, [postToFeedback]);
+
   useEffect(() => {
     // Initial load: Attempt sound unmuting with retry steps
     const tryUnmuteHero = () => {
       if (isHeroInViewRef.current) {
-        postToHero("playVideo");
-        postToHero("unMute");
-        postToHero("setVolume", [100]);
-        setIsHeroVideoPlaying(true);
-        setIsVideo1Muted(false);
+        playAndUnmuteHero();
       }
     };
 
@@ -210,7 +248,7 @@ export default function Home() {
     // If browser blocks unmuted audio prior to user gesture, unmute on first gesture
     const handleFirstGesture = () => {
       if (isHeroInViewRef.current) {
-        tryUnmuteHero();
+        playAndUnmuteHero();
       }
     };
 
@@ -232,28 +270,20 @@ export default function Home() {
       window.removeEventListener("click", handleFirstGesture);
       window.removeEventListener("touchstart", handleFirstGesture);
     };
-  }, [postToHero]);
+  }, [playAndUnmuteHero]);
 
   useEffect(() => {
-    // Hero Section Observer: Sound ON & Play when in hero section, Sound OFF & Pause when scrolled away
+    // Hero Section Observer:
+    // Resume from paused spot & Sound ON when in hero section, Pause at current spot & Sound OFF when scrolled away
     const heroObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             isHeroInViewRef.current = true;
-            // User in Hero Section -> Sound ON & Play
-            postToHero("playVideo");
-            postToHero("unMute");
-            postToHero("setVolume", [100]);
-            setIsHeroVideoPlaying(true);
-            setIsVideo1Muted(false);
+            playAndUnmuteHero();
           } else {
             isHeroInViewRef.current = false;
-            // User scrolled down away from Hero Section -> Sound OFF & Pause
-            postToHero("mute");
-            postToHero("pauseVideo");
-            setIsHeroVideoPlaying(false);
-            setIsVideo1Muted(true);
+            pauseAndMuteHero();
           }
         });
       },
@@ -264,36 +294,21 @@ export default function Home() {
       heroObserver.observe(heroSectionRef.current);
     }
 
-    // Reader Feedback Section Observer: Sound ON & Play ONLY when at feedback section, OFF when scrolled away
+    // Reader Feedback Section Observer:
+    // Resume from paused spot & Sound ON ONLY when at feedback section, Pause at current spot & Sound OFF when scrolled away
     const feedbackObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             isFeedbackInViewRef.current = true;
-            // User reached Reader Feedback -> Sound ON & Play
-            postToFeedback("playVideo");
-            postToFeedback("unMute");
-            postToFeedback("setVolume", [100]);
-            setTimeout(() => {
-              postToFeedback("playVideo");
-              postToFeedback("unMute");
-              postToFeedback("setVolume", [100]);
-            }, 300);
-            setIsFeedbackVideoPlaying(true);
-            setIsVideo3Muted(false);
-
-            // Ensure Hero video is muted and paused
-            postToHero("mute");
-            postToHero("pauseVideo");
-            setIsHeroVideoPlaying(false);
-            setIsVideo1Muted(true);
+            // User reached Reader Feedback -> Play & Sound ON
+            playAndUnmuteFeedback();
+            // Ensure Hero is paused and muted
+            pauseAndMuteHero();
           } else {
             isFeedbackInViewRef.current = false;
-            // User scrolled away from Reader Feedback -> Sound OFF & Pause
-            postToFeedback("mute");
-            postToFeedback("pauseVideo");
-            setIsFeedbackVideoPlaying(false);
-            setIsVideo3Muted(true);
+            // User scrolled away from Reader Feedback -> Pause & Sound OFF
+            pauseAndMuteFeedback();
           }
         });
       },
@@ -308,7 +323,12 @@ export default function Home() {
       heroObserver.disconnect();
       feedbackObserver.disconnect();
     };
-  }, [postToHero, postToFeedback]);
+  }, [
+    playAndUnmuteHero,
+    pauseAndMuteHero,
+    playAndUnmuteFeedback,
+    pauseAndMuteFeedback,
+  ]);
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText("ScriptDoctortamil@gmail.com");
@@ -470,7 +490,10 @@ export default function Home() {
         <div className="flex lg:hidden flex-col items-center gap-5">
           {/* 1. YOUTUBE MASTERCLASS VIDEO FIRST ON MOBILE */}
           <div className="w-full">
-            <HeroVideoCard iframeRef={heroVideoIframeRefMobile} />
+            <HeroVideoCard
+              iframeRef={heroVideoIframeRefMobile}
+              isActive={!isDesktopView}
+            />
           </div>
 
           {/* 2. GET EBOOK PRICE BUTTON SECOND ON MOBILE */}
@@ -797,7 +820,10 @@ export default function Home() {
 
           {/* Right Hero Column: Full Height YouTube Masterclass Video Card (P9T3a2-Onjc) */}
           <div className="col-span-5 h-full w-full flex flex-col">
-            <HeroVideoCard iframeRef={heroVideoIframeRefDesktop} />
+            <HeroVideoCard
+              iframeRef={heroVideoIframeRefDesktop}
+              isActive={isDesktopView}
+            />
           </div>
         </div>
       </section>
@@ -910,7 +936,7 @@ export default function Home() {
               <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-xl bg-black my-2">
                 <iframe
                   ref={videoIframeRef3}
-                  src="https://www.youtube.com/embed/RazScz2oK5E?enablejsapi=1&autoplay=1&mute=1&loop=1&playlist=RazScz2oK5E&rel=0&controls=1"
+                  src="https://www.youtube.com/embed/RazScz2oK5E?enablejsapi=1&autoplay=0&mute=0&loop=1&playlist=RazScz2oK5E&rel=0&controls=1"
                   title="Script Doctor Tamil Reader Feedback Video Review"
                   className="w-full h-full border-0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
