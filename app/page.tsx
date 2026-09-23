@@ -4,117 +4,51 @@ import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
 const PAYMENT_URL =
-  "https://superprofile.bio/vp/kill-the-cat--tamil---english-";
+  "https://superprofile.bio/vp/kill-the-cat--tamil---english-?checkout=true";
 
-export default function Home() {
-  const [language, setLanguage] = useState<"tamil" | "english">("tamil");
-  const [copiedEmail, setCopiedEmail] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-
-  // Video autoplay state & scroll observer refs for 3 videos
-  const videoIframeRef1 = useRef<HTMLIFrameElement>(null); // Hero section video (P9T3a2-Onjc)
-  const videoIframeRef3 = useRef<HTMLIFrameElement>(null); // Reader Feedback Video (bqgbZ_5QM2o)
-  const heroVideoSectionRef = useRef<HTMLDivElement>(null);
-
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const [isVideo1Muted, setIsVideo1Muted] = useState(true);
-  const [isVideo3Muted, setIsVideo3Muted] = useState(true);
+// 5-Minute Urgency Offer Countdown Timer for Reader Feedback Section
+function OfferCountdownTimer() {
+  const [secondsLeft, setSecondsLeft] = useState(300); // 5 minutes (300 seconds)
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            if (videoIframeRef1.current?.contentWindow) {
-              videoIframeRef1.current.contentWindow.postMessage(
-                JSON.stringify({
-                  event: "command",
-                  func: "playVideo",
-                  args: "",
-                }),
-                "*",
-              );
-            }
-            if (videoIframeRef3.current?.contentWindow) {
-              videoIframeRef3.current.contentWindow.postMessage(
-                JSON.stringify({
-                  event: "command",
-                  func: "playVideo",
-                  args: "",
-                }),
-                "*",
-              );
-            }
-            setIsVideoPlaying(true);
-          } else {
-            if (videoIframeRef1.current?.contentWindow) {
-              videoIframeRef1.current.contentWindow.postMessage(
-                JSON.stringify({
-                  event: "command",
-                  func: "pauseVideo",
-                  args: "",
-                }),
-                "*",
-              );
-            }
-            if (videoIframeRef3.current?.contentWindow) {
-              videoIframeRef3.current.contentWindow.postMessage(
-                JSON.stringify({
-                  event: "command",
-                  func: "pauseVideo",
-                  args: "",
-                }),
-                "*",
-              );
-            }
-            setIsVideoPlaying(false);
-          }
-        });
-      },
-      { threshold: 0.2 },
-    );
-
-    if (heroVideoSectionRef.current) {
-      observer.observe(heroVideoSectionRef.current);
-    }
-
-    return () => {
-      if (heroVideoSectionRef.current) {
-        observer.unobserve(heroVideoSectionRef.current);
-      }
-    };
+    const timer = setInterval(() => {
+      setSecondsLeft((prev) => (prev > 0 ? prev - 1 : 300));
+    }, 1000);
+    return () => clearInterval(timer);
   }, []);
 
-  const toggleVideo1Mute = () => {
-    if (videoIframeRef1.current?.contentWindow) {
-      const command = isVideo1Muted ? "unMute" : "mute";
-      videoIframeRef1.current.contentWindow.postMessage(
-        JSON.stringify({ event: "command", func: command, args: "" }),
-        "*",
-      );
-      setIsVideo1Muted(!isVideo1Muted);
-    }
-  };
+  const mins = Math.floor(secondsLeft / 60);
+  const secs = secondsLeft % 60;
+  const timeFormatted = `${mins.toString().padStart(2, "0")}m : ${secs.toString().padStart(2, "0")}s`;
 
-  const toggleVideo3Mute = () => {
-    if (videoIframeRef3.current?.contentWindow) {
-      const command = isVideo3Muted ? "unMute" : "mute";
-      videoIframeRef3.current.contentWindow.postMessage(
-        JSON.stringify({ event: "command", func: command, args: "" }),
-        "*",
-      );
-      setIsVideo3Muted(!isVideo3Muted);
-    }
-  };
+  return (
+    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/35 text-xs font-bold text-slate-900 shadow-sm flex-shrink-0">
+      <span className="text-sm">⏳</span>
+      <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-900">
+        Offer Ends In:
+      </span>
+      <span className="font-mono text-xs font-black text-rose-600 bg-white px-2 py-0.5 rounded-md border border-amber-300 shadow-inner">
+        {timeFormatted}
+      </span>
+    </div>
+  );
+}
 
-  const handleCopyEmail = () => {
-    navigator.clipboard.writeText("ScriptDoctortamil@gmail.com");
-    setCopiedEmail(true);
-    setTimeout(() => setCopiedEmail(false), 2500);
-  };
+// Reusable Hero Video Component using P9T3a2-Onjc
+interface HeroVideoCardProps {
+  iframeRef: React.RefObject<HTMLIFrameElement | null>;
+  isPlaying: boolean;
+  isMuted: boolean;
+  onToggleMute: () => void;
+}
 
-  // Reusable Hero Video Component using P9T3a2-Onjc
-  const HeroVideoCard = () => (
+function HeroVideoCard({
+  iframeRef,
+  isPlaying,
+  isMuted,
+  onToggleMute,
+}: HeroVideoCardProps) {
+  return (
     <div className="relative w-full max-w-md lg:max-w-none mx-auto group flex flex-col h-full">
       <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-rose-400 to-amber-500 rounded-3xl blur-xl opacity-40 group-hover:opacity-70 transition duration-700 animate-pulse-glow" />
 
@@ -122,7 +56,7 @@ export default function Home() {
         {/* YouTube Masterclass Video Player Frame - standard 16:9 on mobile, FULL HEIGHT on webview */}
         <div className="relative aspect-video lg:aspect-auto lg:flex-1 lg:h-full min-h-[220px] sm:min-h-[260px] w-full rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-2xl bg-black">
           <iframe
-            ref={videoIframeRef1}
+            ref={iframeRef}
             src="https://www.youtube.com/embed/P9T3a2-Onjc?enablejsapi=1&autoplay=1&mute=1&loop=1&playlist=P9T3a2-Onjc&rel=0&controls=1"
             title="Script Doctor Tamil YouTube Masterclass"
             className="w-full h-full border-0"
@@ -135,24 +69,26 @@ export default function Home() {
         <div className="w-full mt-3 flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-slate-900 border border-amber-500/30 text-xs text-white flex-shrink-0">
           <span className="flex items-center gap-1.5 font-semibold text-amber-400 truncate text-[11px] sm:text-xs">
             <span
-              className={`w-2 h-2 rounded-full flex-shrink-0 ${isVideoPlaying ? "bg-emerald-500 animate-pulse" : "bg-slate-500"}`}
+              className={`w-2 h-2 rounded-full flex-shrink-0 ${isPlaying ? "bg-emerald-500 animate-pulse" : "bg-slate-500"}`}
             />
-            {isVideoPlaying ? "Autoplay Active" : "Paused"}
+            {isPlaying ? "Autoplay Active" : "Paused"}
           </span>
 
           <button
-            onClick={toggleVideo1Mute}
+            onClick={onToggleMute}
             className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold px-3 py-1 rounded-md border border-amber-500/40 transition-colors flex items-center gap-1 cursor-pointer text-[11px] sm:text-xs flex-shrink-0"
           >
-            {isVideo1Muted ? "🔊 Sound On" : "🔇 Mute"}
+            {isMuted ? "🔊 Sound On" : "🔇 Mute"}
           </button>
         </div>
       </div>
     </div>
   );
+}
 
-  // Reusable Price & Buy Action Bar Component
-  const PriceActionBar = () => (
+// Reusable Price & Buy Action Bar Component
+function PriceActionBar() {
+  return (
     <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-3.5 pt-1 sm:pt-2">
       <div className="w-full sm:w-auto flex items-baseline justify-center sm:justify-start gap-2 sm:gap-2.5 px-3.5 sm:px-4 xl:px-5 py-2.5 sm:py-3 rounded-2xl border bg-amber-50 border-amber-200 shadow-sm flex-shrink-0">
         <span className="text-2xl sm:text-3xl xl:text-4xl font-black text-amber-600">
@@ -192,6 +128,136 @@ export default function Home() {
       </a>
     </div>
   );
+}
+
+export default function Home() {
+  const [language, setLanguage] = useState<"tamil" | "english">("tamil");
+  const [copiedEmail, setCopiedEmail] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  // Video autoplay state & scroll observer refs
+  const heroVideoIframeRefDesktop = useRef<HTMLIFrameElement>(null);
+  const heroVideoIframeRefMobile = useRef<HTMLIFrameElement>(null);
+  const videoIframeRef3 = useRef<HTMLIFrameElement>(null); // Reader Feedback Video (RazScz2oK5E)
+
+  const heroSectionRef = useRef<HTMLDivElement>(null);
+  const readerFeedbackSectionRef = useRef<HTMLDivElement>(null);
+
+  const [isHeroVideoPlaying, setIsHeroVideoPlaying] = useState(true);
+  const [isFeedbackVideoPlaying, setIsFeedbackVideoPlaying] = useState(false);
+  const [isVideo1Muted, setIsVideo1Muted] = useState(true);
+  const [isVideo3Muted, setIsVideo3Muted] = useState(true);
+
+  useEffect(() => {
+    // Hero Section Observer
+    const heroObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const mobileWindow = heroVideoIframeRefMobile.current?.contentWindow;
+          const desktopWindow =
+            heroVideoIframeRefDesktop.current?.contentWindow;
+          const targetWindow = desktopWindow || mobileWindow;
+          if (entry.isIntersecting) {
+            targetWindow?.postMessage(
+              JSON.stringify({
+                event: "command",
+                func: "playVideo",
+                args: "",
+              }),
+              "*",
+            );
+            setIsHeroVideoPlaying(true);
+          } else {
+            targetWindow?.postMessage(
+              JSON.stringify({
+                event: "command",
+                func: "pauseVideo",
+                args: "",
+              }),
+              "*",
+            );
+            setIsHeroVideoPlaying(false);
+          }
+        });
+      },
+      { threshold: 0.15 },
+    );
+
+    if (heroSectionRef.current) {
+      heroObserver.observe(heroSectionRef.current);
+    }
+
+    // Reader Feedback Section Observer
+    const feedbackObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const feedbackWindow = videoIframeRef3.current?.contentWindow;
+          if (entry.isIntersecting) {
+            feedbackWindow?.postMessage(
+              JSON.stringify({
+                event: "command",
+                func: "playVideo",
+                args: "",
+              }),
+              "*",
+            );
+            setIsFeedbackVideoPlaying(true);
+          } else {
+            feedbackWindow?.postMessage(
+              JSON.stringify({
+                event: "command",
+                func: "pauseVideo",
+                args: "",
+              }),
+              "*",
+            );
+            setIsFeedbackVideoPlaying(false);
+          }
+        });
+      },
+      { threshold: 0.2 },
+    );
+
+    if (readerFeedbackSectionRef.current) {
+      feedbackObserver.observe(readerFeedbackSectionRef.current);
+    }
+
+    return () => {
+      heroObserver.disconnect();
+      feedbackObserver.disconnect();
+    };
+  }, []);
+
+  const toggleHeroVideoMute = () => {
+    const mobileWindow = heroVideoIframeRefMobile.current?.contentWindow;
+    const desktopWindow = heroVideoIframeRefDesktop.current?.contentWindow;
+    const targetWindow = desktopWindow || mobileWindow;
+    if (targetWindow) {
+      const command = isVideo1Muted ? "unMute" : "mute";
+      targetWindow.postMessage(
+        JSON.stringify({ event: "command", func: command, args: "" }),
+        "*",
+      );
+      setIsVideo1Muted(!isVideo1Muted);
+    }
+  };
+
+  const toggleVideo3Mute = () => {
+    if (videoIframeRef3.current?.contentWindow) {
+      const command = isVideo3Muted ? "unMute" : "mute";
+      videoIframeRef3.current.contentWindow.postMessage(
+        JSON.stringify({ event: "command", func: command, args: "" }),
+        "*",
+      );
+      setIsVideo3Muted(!isVideo3Muted);
+    }
+  };
+
+  const handleCopyEmail = () => {
+    navigator.clipboard.writeText("ScriptDoctortamil@gmail.com");
+    setCopiedEmail(true);
+    setTimeout(() => setCopiedEmail(false), 2500);
+  };
 
   return (
     <div className="relative min-h-screen overflow-hidden font-sans bg-[#fffdfa] text-slate-900 transition-colors duration-500">
@@ -340,13 +406,19 @@ export default function Home() {
       {/* HERO SECTION - DESKTOP & MOBILE OPTIMIZED ORDER */}
       <section
         id="overview"
+        ref={heroSectionRef}
         className="relative pt-6 sm:pt-10 pb-12 sm:pb-16 px-4 sm:px-6 max-w-6xl mx-auto z-10"
       >
         {/* MOBILE VIEW SPECIFIC ORDER (Shows 1. Video -> 2. Price Button -> 3. Reduced Size Content) */}
         <div className="flex lg:hidden flex-col items-center gap-5">
           {/* 1. YOUTUBE MASTERCLASS VIDEO FIRST ON MOBILE */}
           <div className="w-full">
-            <HeroVideoCard />
+            <HeroVideoCard
+              iframeRef={heroVideoIframeRefMobile}
+              isPlaying={isHeroVideoPlaying}
+              isMuted={isVideo1Muted}
+              onToggleMute={toggleHeroVideoMute}
+            />
           </div>
 
           {/* 2. GET EBOOK PRICE BUTTON SECOND ON MOBILE */}
@@ -673,7 +745,12 @@ export default function Home() {
 
           {/* Right Hero Column: Full Height YouTube Masterclass Video Card (P9T3a2-Onjc) */}
           <div className="col-span-5 h-full w-full flex flex-col">
-            <HeroVideoCard />
+            <HeroVideoCard
+              iframeRef={heroVideoIframeRefDesktop}
+              isPlaying={isHeroVideoPlaying}
+              isMuted={isVideo1Muted}
+              onToggleMute={toggleHeroVideoMute}
+            />
           </div>
         </div>
       </section>
@@ -757,7 +834,7 @@ export default function Home() {
       {/* READER FEEDBACK VIDEO SECTION */}
       <section
         id="reader-feedback"
-        ref={heroVideoSectionRef}
+        ref={readerFeedbackSectionRef}
         className="py-16 px-4 sm:px-6 max-w-6xl mx-auto border-t border-slate-200 relative z-10 space-y-8"
       >
         <div className="text-center max-w-2xl mx-auto">
@@ -774,16 +851,16 @@ export default function Home() {
           </p>
         </div>
 
-        {/* SINGLE READER FEEDBACK VIDEO CARD (bqgbZ_5QM2o) */}
+        {/* SINGLE READER FEEDBACK VIDEO CARD (RazScz2oK5E) */}
         <div className="w-full max-w-3xl lg:max-w-none mx-auto">
           <div className="rounded-3xl p-5 sm:p-7 border shadow-xl flex flex-col justify-between transition-colors glass-card-gold-light border-amber-300 bg-white">
             <div>
               <div className="w-full mb-3 flex items-center justify-between gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900 text-white border border-amber-500/30 text-xs">
                 <span className="flex items-center gap-1.5 font-semibold text-amber-400 truncate text-xs">
                   <span
-                    className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isVideoPlaying ? "bg-emerald-500 animate-pulse" : "bg-slate-500"}`}
+                    className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isFeedbackVideoPlaying ? "bg-emerald-500 animate-pulse" : "bg-slate-500"}`}
                   />
-                  {isVideoPlaying ? "Autoplay Active" : "Paused"}
+                  {isFeedbackVideoPlaying ? "Autoplay Active" : "Paused"}
                 </span>
 
                 <button
@@ -802,7 +879,7 @@ export default function Home() {
               <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-xl bg-black my-2">
                 <iframe
                   ref={videoIframeRef3}
-                  src="https://www.youtube.com/embed/bqgbZ_5QM2o?enablejsapi=1&autoplay=1&mute=1&loop=1&playlist=bqgbZ_5QM2o&rel=0&controls=1"
+                  src="https://www.youtube.com/embed/RazScz2oK5E?enablejsapi=1&autoplay=1&mute=1&loop=1&playlist=RazScz2oK5E&rel=0&controls=1"
                   title="Script Doctor Tamil Reader Feedback Video Review"
                   className="w-full h-full border-0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -812,33 +889,39 @@ export default function Home() {
             </div>
 
             <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3">
-              <span className="text-xs text-slate-500 font-medium">
+              <span className="text-xs text-slate-500 font-medium order-2 sm:order-1">
                 Verified Reader Experience
               </span>
-              <a
-                href={PAYMENT_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black px-5 py-2.5 rounded-full text-xs shadow-md shadow-amber-500/25 transition-all transform hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap"
-              >
-                <span>Get E-Book • ₹333</span>
-                <span className="line-through text-slate-800/60 text-xs font-semibold">
-                  ₹500
-                </span>
-                <svg
-                  className="w-3.5 h-3.5 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              <div className="flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3 w-full sm:w-auto order-1 sm:order-2">
+                {/* 5-MIN COUNTDOWN TIMER BEFORE EBOOK BUTTON */}
+                <OfferCountdownTimer />
+
+                {/* E-BOOK PAYMENT BUTTON */}
+                <a
+                  href={PAYMENT_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black px-5 py-2.5 rounded-full text-xs shadow-md shadow-amber-500/25 transition-all transform hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M14 5l7 7m0 0l-7 7m7-7H3"
-                  />
-                </svg>
-              </a>
+                  <span>Get E-Book • ₹333</span>
+                  <span className="line-through text-slate-800/60 text-xs font-semibold">
+                    ₹500
+                  </span>
+                  <svg
+                    className="w-3.5 h-3.5 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M14 5l7 7m0 0l-7 7m7-7H3"
+                    />
+                  </svg>
+                </a>
+              </div>
             </div>
           </div>
         </div>
