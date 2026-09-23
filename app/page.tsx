@@ -78,18 +78,11 @@ function OfferCountdownTimer({ compact = false }: { compact?: boolean }) {
 }
 
 // Hero Video Player using official YouTube IFrame Player API
-// Guarantees autoplay on first load (muted) with reliable onReady callback
 interface HeroVideoPlayerProps {
-  isMuted: boolean;
-  onToggleSound: () => void;
   onPlayerReady: (player: any) => void;
 }
 
-function HeroVideoPlayer({
-  isMuted,
-  onToggleSound,
-  onPlayerReady,
-}: HeroVideoPlayerProps) {
+function HeroVideoPlayer({ onPlayerReady }: HeroVideoPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerInstanceRef = useRef<any>(null);
   const onPlayerReadyRef = useRef(onPlayerReady);
@@ -110,7 +103,7 @@ function HeroVideoPlayer({
           height: "100%",
           playerVars: {
             autoplay: 1,
-            mute: 1,
+            mute: 0,
             playsinline: 1,
             loop: 1,
             playlist: "P9T3a2-Onjc",
@@ -120,7 +113,13 @@ function HeroVideoPlayer({
           events: {
             onReady: (event: any) => {
               if (!destroyed) {
-                event.target.playVideo();
+                try {
+                  event.target.unMute();
+                  event.target.setVolume(100);
+                  event.target.playVideo();
+                } catch {
+                  /* ignore */
+                }
                 onPlayerReadyRef.current(event.target);
               }
             },
@@ -159,29 +158,6 @@ function HeroVideoPlayer({
       <div className="relative rounded-3xl p-3 sm:p-4 xl:p-5 border shadow-2xl overflow-hidden bg-white border-amber-300 shadow-amber-500/20 flex flex-col h-full justify-between">
         <div className="relative aspect-video lg:aspect-auto lg:flex-1 lg:h-full min-h-[220px] sm:min-h-[260px] w-full rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-2xl bg-black [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:border-0">
           <div ref={containerRef} className="w-full h-full" />
-
-          {/* Full-area Tap-to-Unmute Overlay (shown when muted) */}
-          {isMuted ? (
-            <button
-              type="button"
-              onClick={onToggleSound}
-              className="absolute inset-0 z-20 flex items-end justify-center pb-4 sm:pb-5 cursor-pointer bg-gradient-to-t from-black/60 via-transparent to-transparent transition-opacity"
-            >
-              <span className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full backdrop-blur-lg bg-amber-500/90 text-slate-950 text-xs sm:text-sm font-black border border-amber-400 shadow-2xl shadow-amber-500/40 animate-bounce">
-                <span className="text-base sm:text-lg">🔊</span>
-                <span>Tap Anywhere for Sound</span>
-              </span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onToggleSound}
-              className="absolute bottom-3 right-3 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md bg-black/70 text-white text-[11px] sm:text-xs font-bold border border-emerald-400/40 shadow-lg cursor-pointer transition-all transform hover:scale-105 active:scale-95"
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span>🔊 Sound ON</span>
-            </button>
-          )}
         </div>
       </div>
     </div>
@@ -250,15 +226,13 @@ export default function Home() {
   const heroSectionRef = useRef<HTMLDivElement>(null);
   const readerFeedbackSectionRef = useRef<HTMLDivElement>(null);
 
-  // Sound toggle & responsive layout state
-  const [isHeroMuted, setIsHeroMuted] = useState(true);
+  // Responsive layout state
   const [isDesktopLayout, setIsDesktopLayout] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   // Track active visibility state across observer callbacks
   const isHeroInViewRef = useRef(true);
   const isFeedbackInViewRef = useRef(false);
-  const hasUserInteractedRef = useRef(false);
 
   // Load YouTube IFrame Player API script & detect responsive layout
   useEffect(() => {
@@ -277,42 +251,16 @@ export default function Home() {
     return () => window.removeEventListener("resize", checkIsDesktop);
   }, []);
 
-  // Callback when YT.Player fires onReady — store reference
+  // Callback when YT.Player fires onReady — store reference and start unmuted playback
   const handleHeroPlayerReady = useCallback((player: any) => {
     heroPlayerRef.current = player;
-    // If user already interacted before player was ready, unmute now
-    if (hasUserInteractedRef.current && isHeroInViewRef.current) {
-      try {
-        player.unMute();
-        player.setVolume(100);
-        player.playVideo();
-      } catch {
-        /* player not ready */
-      }
+    try {
+      player.unMute();
+      player.setVolume(100);
+      player.playVideo();
+    } catch {
+      /* ignore */
     }
-  }, []);
-
-  // Manual Sound Toggle Button Handler
-  const handleToggleSound = useCallback(() => {
-    hasUserInteractedRef.current = true;
-    const player = heroPlayerRef.current;
-    setIsHeroMuted((prev) => {
-      const nextMuted = !prev;
-      if (player) {
-        try {
-          if (nextMuted) {
-            player.mute();
-          } else {
-            player.unMute();
-            player.setVolume(100);
-            player.playVideo();
-          }
-        } catch {
-          /* ignore */
-        }
-      }
-      return nextMuted;
-    });
   }, []);
 
   // Helper to send postMessage commands to Reader Feedback Video iframe
@@ -332,12 +280,9 @@ export default function Home() {
     postToFeedback("mute", []);
   }, [postToFeedback]);
 
-  // User gesture detection: unmute hero video on first touch/click/scroll
+  // User gesture detection: ensure sound and playback are active on touch/click/scroll
   useEffect(() => {
     const handleGesture = () => {
-      if (hasUserInteractedRef.current) return; // already handled
-      hasUserInteractedRef.current = true;
-      setIsHeroMuted(false);
       const player = heroPlayerRef.current;
       if (player && isHeroInViewRef.current) {
         try {
@@ -345,7 +290,7 @@ export default function Home() {
           player.setVolume(100);
           player.playVideo();
         } catch {
-          /* player not ready yet, onReady will handle it */
+          /* ignore */
         }
       }
     };
@@ -374,11 +319,8 @@ export default function Home() {
             if (player) {
               try {
                 player.playVideo();
-                if (hasUserInteractedRef.current) {
-                  player.unMute();
-                  player.setVolume(100);
-                  setIsHeroMuted(false);
-                }
+                player.unMute();
+                player.setVolume(100);
               } catch {
                 /* ignore */
               }
@@ -388,7 +330,6 @@ export default function Home() {
             if (player) {
               try {
                 player.pauseVideo();
-                player.mute();
               } catch {
                 /* ignore */
               }
@@ -598,11 +539,7 @@ export default function Home() {
           {/* 1. YOUTUBE MASTERCLASS VIDEO FIRST ON MOBILE */}
           <div className="w-full">
             {(!isMounted || !isDesktopLayout) && (
-              <HeroVideoPlayer
-                isMuted={isHeroMuted}
-                onToggleSound={handleToggleSound}
-                onPlayerReady={handleHeroPlayerReady}
-              />
+              <HeroVideoPlayer onPlayerReady={handleHeroPlayerReady} />
             )}
           </div>
 
@@ -931,11 +868,7 @@ export default function Home() {
           {/* Right Hero Column: Full Height YouTube Masterclass Video Card (P9T3a2-Onjc) */}
           <div className="col-span-5 h-full w-full flex flex-col">
             {isMounted && isDesktopLayout && (
-              <HeroVideoPlayer
-                isMuted={isHeroMuted}
-                onToggleSound={handleToggleSound}
-                onPlayerReady={handleHeroPlayerReady}
-              />
+              <HeroVideoPlayer onPlayerReady={handleHeroPlayerReady} />
             )}
           </div>
         </div>
