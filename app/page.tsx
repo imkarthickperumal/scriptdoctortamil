@@ -77,63 +77,109 @@ function OfferCountdownTimer({ compact = false }: { compact?: boolean }) {
   );
 }
 
-// Reusable Hero Video Component using P9T3a2-Onjc
-interface HeroVideoCardProps {
-  iframeRef: React.RefObject<HTMLIFrameElement | null>;
-  isMuted?: boolean;
-  onToggleSound?: () => void;
+// Hero Video Player using official YouTube IFrame Player API
+// Guarantees autoplay on first load (muted) with reliable onReady callback
+interface HeroVideoPlayerProps {
+  isMuted: boolean;
+  onToggleSound: () => void;
+  onPlayerReady: (player: any) => void;
 }
 
-function HeroVideoCard({
-  iframeRef,
-  isMuted = true,
+function HeroVideoPlayer({
+  isMuted,
   onToggleSound,
-}: HeroVideoCardProps) {
+  onPlayerReady,
+}: HeroVideoPlayerProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const playerInstanceRef = useRef<any>(null);
+  const onPlayerReadyRef = useRef(onPlayerReady);
+  onPlayerReadyRef.current = onPlayerReady;
+
+  useEffect(() => {
+    let destroyed = false;
+
+    const createPlayer = () => {
+      if (destroyed || !containerRef.current || playerInstanceRef.current)
+        return;
+
+      playerInstanceRef.current = new (window as any).YT.Player(
+        containerRef.current,
+        {
+          videoId: "P9T3a2-Onjc",
+          width: "100%",
+          height: "100%",
+          playerVars: {
+            autoplay: 1,
+            mute: 1,
+            playsinline: 1,
+            loop: 1,
+            playlist: "P9T3a2-Onjc",
+            rel: 0,
+            controls: 1,
+          },
+          events: {
+            onReady: (event: any) => {
+              if (!destroyed) {
+                event.target.playVideo();
+                onPlayerReadyRef.current(event.target);
+              }
+            },
+          },
+        },
+      );
+    };
+
+    if ((window as any).YT?.Player) {
+      createPlayer();
+    } else {
+      const prevCb = (window as any).onYouTubeIframeAPIReady;
+      (window as any).onYouTubeIframeAPIReady = () => {
+        if (typeof prevCb === "function") prevCb();
+        createPlayer();
+      };
+    }
+
+    return () => {
+      destroyed = true;
+      if (playerInstanceRef.current?.destroy) {
+        try {
+          playerInstanceRef.current.destroy();
+        } catch {
+          /* ignore */
+        }
+        playerInstanceRef.current = null;
+      }
+    };
+  }, []);
+
   return (
     <div className="relative w-full max-w-md lg:max-w-none mx-auto group flex flex-col h-full">
       <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-rose-400 to-amber-500 rounded-3xl blur-xl opacity-40 group-hover:opacity-70 transition duration-700 animate-pulse-glow" />
 
       <div className="relative rounded-3xl p-3 sm:p-4 xl:p-5 border shadow-2xl overflow-hidden bg-white border-amber-300 shadow-amber-500/20 flex flex-col h-full justify-between">
-        {/* YouTube Masterclass Video Player Frame - standard 16:9 on mobile, FULL HEIGHT on webview */}
-        <div className="relative aspect-video lg:aspect-auto lg:flex-1 lg:h-full min-h-[220px] sm:min-h-[260px] w-full rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-2xl bg-black">
-          <iframe
-            ref={iframeRef}
-            src="https://www.youtube.com/embed/P9T3a2-Onjc?enablejsapi=1&autoplay=1&mute=1&playsinline=1&loop=1&playlist=P9T3a2-Onjc&rel=0&controls=1"
-            title="Script Doctor Tamil YouTube Masterclass"
-            className="w-full h-full border-0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-            loading="eager"
-            onLoad={() => {
-              iframeRef.current?.contentWindow?.postMessage(
-                JSON.stringify({
-                  event: "command",
-                  func: "playVideo",
-                  args: [],
-                }),
-                "*",
-              );
-            }}
-          />
+        <div className="relative aspect-video lg:aspect-auto lg:flex-1 lg:h-full min-h-[220px] sm:min-h-[260px] w-full rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-2xl bg-black [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:border-0">
+          <div ref={containerRef} className="w-full h-full" />
 
-          {/* Floating Sound Toggle Pill */}
-          {onToggleSound && (
+          {/* Full-area Tap-to-Unmute Overlay (shown when muted) */}
+          {isMuted ? (
             <button
               type="button"
               onClick={onToggleSound}
-              className="absolute bottom-3 right-3 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md bg-black/80 hover:bg-black text-white text-[11px] sm:text-xs font-bold border border-amber-400/40 shadow-xl cursor-pointer transition-all transform hover:scale-105 active:scale-95"
+              className="absolute inset-0 z-20 flex items-end justify-center pb-4 sm:pb-5 cursor-pointer bg-gradient-to-t from-black/60 via-transparent to-transparent transition-opacity"
             >
-              {isMuted ? (
-                <>
-                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-                  <span>🔇 Tap for Sound</span>
-                </>
-              ) : (
-                <>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  <span>🔊 Sound ON</span>
-                </>
-              )}
+              <span className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full backdrop-blur-lg bg-amber-500/90 text-slate-950 text-xs sm:text-sm font-black border border-amber-400 shadow-2xl shadow-amber-500/40 animate-bounce">
+                <span className="text-base sm:text-lg">🔊</span>
+                <span>Tap Anywhere for Sound</span>
+              </span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onToggleSound}
+              className="absolute bottom-3 right-3 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md bg-black/70 text-white text-[11px] sm:text-xs font-bold border border-emerald-400/40 shadow-lg cursor-pointer transition-all transform hover:scale-105 active:scale-95"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span>🔊 Sound ON</span>
             </button>
           )}
         </div>
@@ -197,8 +243,8 @@ export default function Home() {
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  // Video autoplay state & scroll observer refs
-  const heroVideoIframeRef = useRef<HTMLIFrameElement>(null);
+  // YouTube Player API refs
+  const heroPlayerRef = useRef<any>(null); // YT.Player instance
   const videoIframeRef3 = useRef<HTMLIFrameElement>(null); // Reader Feedback Video (RazScz2oK5E)
 
   const heroSectionRef = useRef<HTMLDivElement>(null);
@@ -209,20 +255,64 @@ export default function Home() {
   const [isDesktopLayout, setIsDesktopLayout] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
+  // Track active visibility state across observer callbacks
+  const isHeroInViewRef = useRef(true);
+  const isFeedbackInViewRef = useRef(false);
+  const hasUserInteractedRef = useRef(false);
+
+  // Load YouTube IFrame Player API script & detect responsive layout
   useEffect(() => {
     setIsMounted(true);
     const checkIsDesktop = () => setIsDesktopLayout(window.innerWidth >= 1024);
     checkIsDesktop();
     window.addEventListener("resize", checkIsDesktop);
+
+    // Load YouTube IFrame API script (only once)
+    if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      document.head.appendChild(tag);
+    }
+
     return () => window.removeEventListener("resize", checkIsDesktop);
   }, []);
 
-  // Helper to send postMessage commands to the Hero Video iframe
-  const postToHero = useCallback((func: string, args: any = []) => {
-    heroVideoIframeRef.current?.contentWindow?.postMessage(
-      JSON.stringify({ event: "command", func, args }),
-      "*",
-    );
+  // Callback when YT.Player fires onReady — store reference
+  const handleHeroPlayerReady = useCallback((player: any) => {
+    heroPlayerRef.current = player;
+    // If user already interacted before player was ready, unmute now
+    if (hasUserInteractedRef.current && isHeroInViewRef.current) {
+      try {
+        player.unMute();
+        player.setVolume(100);
+        player.playVideo();
+      } catch {
+        /* player not ready */
+      }
+    }
+  }, []);
+
+  // Manual Sound Toggle Button Handler
+  const handleToggleSound = useCallback(() => {
+    hasUserInteractedRef.current = true;
+    const player = heroPlayerRef.current;
+    setIsHeroMuted((prev) => {
+      const nextMuted = !prev;
+      if (player) {
+        try {
+          if (nextMuted) {
+            player.mute();
+          } else {
+            player.unMute();
+            player.setVolume(100);
+            player.playVideo();
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+      return nextMuted;
+    });
   }, []);
 
   // Helper to send postMessage commands to Reader Feedback Video iframe
@@ -230,42 +320,6 @@ export default function Home() {
     const msg = JSON.stringify({ event: "command", func, args });
     videoIframeRef3.current?.contentWindow?.postMessage(msg, "*");
   }, []);
-
-  // Track active visibility state across observer callbacks
-  const isHeroInViewRef = useRef(true);
-  const isFeedbackInViewRef = useRef(false);
-  const hasUserInteractedRef = useRef(false);
-
-  // Manual Sound Toggle Button Handler
-  const handleToggleSound = useCallback(() => {
-    hasUserInteractedRef.current = true;
-    setIsHeroMuted((prev) => {
-      const nextMuted = !prev;
-      if (nextMuted) {
-        postToHero("mute", []);
-      } else {
-        postToHero("unMute", []);
-        postToHero("setVolume", [100]);
-        postToHero("playVideo", []);
-      }
-      return nextMuted;
-    });
-  }, [postToHero]);
-
-  // Functions to play/unmute and pause/mute cleanly preserving playback position
-  const playAndUnmuteHero = useCallback(() => {
-    postToHero("playVideo", []);
-    if (hasUserInteractedRef.current) {
-      postToHero("unMute", []);
-      postToHero("setVolume", [100]);
-      setIsHeroMuted(false);
-    }
-  }, [postToHero]);
-
-  const pauseAndMuteHero = useCallback(() => {
-    postToHero("pauseVideo", []);
-    postToHero("mute", []);
-  }, [postToHero]);
 
   const playAndUnmuteFeedback = useCallback(() => {
     postToFeedback("playVideo", []);
@@ -278,30 +332,21 @@ export default function Home() {
     postToFeedback("mute", []);
   }, [postToFeedback]);
 
+  // User gesture detection: unmute hero video on first touch/click/scroll
   useEffect(() => {
-    // Initial load: ensure video starts playing immediately on both mobile & desktop
-    // IMPORTANT: Keep video muted on initial load to strictly comply with browser Autoplay Policy.
-    // Calling unMute before user interaction causes Android Chrome / iOS Safari to PAUSE the video at 0:00!
-    const startHeroPlayback = () => {
-      if (isHeroInViewRef.current) {
-        postToHero("playVideo", []);
-      }
-    };
-
-    startHeroPlayback();
-    const t1 = setTimeout(startHeroPlayback, 200);
-    const t2 = setTimeout(startHeroPlayback, 600);
-    const t3 = setTimeout(startHeroPlayback, 1200);
-    const t4 = setTimeout(startHeroPlayback, 2400);
-
-    // As soon as the user touches the screen, taps, or scrolls:
     const handleGesture = () => {
+      if (hasUserInteractedRef.current) return; // already handled
       hasUserInteractedRef.current = true;
       setIsHeroMuted(false);
-      if (isHeroInViewRef.current) {
-        postToHero("unMute", []);
-        postToHero("setVolume", [100]);
-        postToHero("playVideo", []);
+      const player = heroPlayerRef.current;
+      if (player && isHeroInViewRef.current) {
+        try {
+          player.unMute();
+          player.setVolume(100);
+          player.playVideo();
+        } catch {
+          /* player not ready yet, onReady will handle it */
+        }
       }
     };
 
@@ -311,34 +356,43 @@ export default function Home() {
     window.addEventListener("scroll", handleGesture, { passive: true });
 
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
       window.removeEventListener("touchstart", handleGesture);
       window.removeEventListener("pointerdown", handleGesture);
       window.removeEventListener("click", handleGesture);
       window.removeEventListener("scroll", handleGesture);
     };
-  }, [postToHero]);
+  }, []);
 
+  // IntersectionObserver: pause/play hero & feedback videos based on scroll position
   useEffect(() => {
-    // Hero Section Observer:
-    // Resume from paused spot & Sound ON when in hero section, Pause at current spot & Sound OFF when scrolled away
     const heroObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
+          const player = heroPlayerRef.current;
           if (entry.isIntersecting) {
             isHeroInViewRef.current = true;
-            postToHero("playVideo", []);
-            if (hasUserInteractedRef.current) {
-              postToHero("unMute", []);
-              postToHero("setVolume", [100]);
-              setIsHeroMuted(false);
+            if (player) {
+              try {
+                player.playVideo();
+                if (hasUserInteractedRef.current) {
+                  player.unMute();
+                  player.setVolume(100);
+                  setIsHeroMuted(false);
+                }
+              } catch {
+                /* ignore */
+              }
             }
           } else {
             isHeroInViewRef.current = false;
-            pauseAndMuteHero();
+            if (player) {
+              try {
+                player.pauseVideo();
+                player.mute();
+              } catch {
+                /* ignore */
+              }
+            }
           }
         });
       },
@@ -349,20 +403,23 @@ export default function Home() {
       heroObserver.observe(heroSectionRef.current);
     }
 
-    // Reader Feedback Section Observer:
-    // Resume from paused spot & Sound ON ONLY when at feedback section, Pause at current spot & Sound OFF when scrolled away
     const feedbackObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             isFeedbackInViewRef.current = true;
-            // User reached Reader Feedback -> Play & Sound ON
             playAndUnmuteFeedback();
-            // Ensure Hero is paused and muted
-            pauseAndMuteHero();
+            const player = heroPlayerRef.current;
+            if (player) {
+              try {
+                player.pauseVideo();
+                player.mute();
+              } catch {
+                /* ignore */
+              }
+            }
           } else {
             isFeedbackInViewRef.current = false;
-            // User scrolled away from Reader Feedback -> Pause & Sound OFF
             pauseAndMuteFeedback();
           }
         });
@@ -378,13 +435,7 @@ export default function Home() {
       heroObserver.disconnect();
       feedbackObserver.disconnect();
     };
-  }, [
-    playAndUnmuteHero,
-    pauseAndMuteHero,
-    playAndUnmuteFeedback,
-    pauseAndMuteFeedback,
-    postToHero,
-  ]);
+  }, [playAndUnmuteFeedback, pauseAndMuteFeedback]);
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText("ScriptDoctortamil@gmail.com");
@@ -547,10 +598,10 @@ export default function Home() {
           {/* 1. YOUTUBE MASTERCLASS VIDEO FIRST ON MOBILE */}
           <div className="w-full">
             {(!isMounted || !isDesktopLayout) && (
-              <HeroVideoCard
-                iframeRef={heroVideoIframeRef}
+              <HeroVideoPlayer
                 isMuted={isHeroMuted}
                 onToggleSound={handleToggleSound}
+                onPlayerReady={handleHeroPlayerReady}
               />
             )}
           </div>
@@ -880,10 +931,10 @@ export default function Home() {
           {/* Right Hero Column: Full Height YouTube Masterclass Video Card (P9T3a2-Onjc) */}
           <div className="col-span-5 h-full w-full flex flex-col">
             {isMounted && isDesktopLayout && (
-              <HeroVideoCard
-                iframeRef={heroVideoIframeRef}
+              <HeroVideoPlayer
                 isMuted={isHeroMuted}
                 onToggleSound={handleToggleSound}
+                onPlayerReady={handleHeroPlayerReady}
               />
             )}
           </div>
