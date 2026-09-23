@@ -80,9 +80,15 @@ function OfferCountdownTimer({ compact = false }: { compact?: boolean }) {
 // Reusable Hero Video Component using P9T3a2-Onjc
 interface HeroVideoCardProps {
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
+  isMuted?: boolean;
+  onToggleSound?: () => void;
 }
 
-function HeroVideoCard({ iframeRef }: HeroVideoCardProps) {
+function HeroVideoCard({
+  iframeRef,
+  isMuted = true,
+  onToggleSound,
+}: HeroVideoCardProps) {
   return (
     <div className="relative w-full max-w-md lg:max-w-none mx-auto group flex flex-col h-full">
       <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-rose-400 to-amber-500 rounded-3xl blur-xl opacity-40 group-hover:opacity-70 transition duration-700 animate-pulse-glow" />
@@ -98,7 +104,38 @@ function HeroVideoCard({ iframeRef }: HeroVideoCardProps) {
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
             loading="eager"
+            onLoad={() => {
+              iframeRef.current?.contentWindow?.postMessage(
+                JSON.stringify({
+                  event: "command",
+                  func: "playVideo",
+                  args: [],
+                }),
+                "*",
+              );
+            }}
           />
+
+          {/* Floating Sound Toggle Pill */}
+          {onToggleSound && (
+            <button
+              type="button"
+              onClick={onToggleSound}
+              className="absolute bottom-3 right-3 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md bg-black/80 hover:bg-black text-white text-[11px] sm:text-xs font-bold border border-amber-400/40 shadow-xl cursor-pointer transition-all transform hover:scale-105 active:scale-95"
+            >
+              {isMuted ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                  <span>🔇 Tap for Sound</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span>🔊 Sound ON</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -161,36 +198,28 @@ export default function Home() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   // Video autoplay state & scroll observer refs
-  const heroVideoIframeRefDesktop = useRef<HTMLIFrameElement>(null);
-  const heroVideoIframeRefMobile = useRef<HTMLIFrameElement>(null);
+  const heroVideoIframeRef = useRef<HTMLIFrameElement>(null);
   const videoIframeRef3 = useRef<HTMLIFrameElement>(null); // Reader Feedback Video (RazScz2oK5E)
 
   const heroSectionRef = useRef<HTMLDivElement>(null);
   const readerFeedbackSectionRef = useRef<HTMLDivElement>(null);
 
-  // Helper to send postMessage commands to ONLY the active Hero Video iframe
+  // Sound toggle & responsive layout state
+  const [isHeroMuted, setIsHeroMuted] = useState(true);
+  const [isDesktopLayout, setIsDesktopLayout] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    const checkIsDesktop = () => setIsDesktopLayout(window.innerWidth >= 1024);
+    checkIsDesktop();
+    window.addEventListener("resize", checkIsDesktop);
+    return () => window.removeEventListener("resize", checkIsDesktop);
+  }, []);
+
+  // Helper to send postMessage commands to the Hero Video iframe
   const postToHero = useCallback((func: string, args: any = []) => {
-    if (typeof window === "undefined") return;
-    const isDesktop = window.innerWidth >= 1024;
-    const targetWindow = isDesktop
-      ? heroVideoIframeRefDesktop.current?.contentWindow
-      : heroVideoIframeRefMobile.current?.contentWindow;
-    const inactiveWindow = isDesktop
-      ? heroVideoIframeRefMobile.current?.contentWindow
-      : heroVideoIframeRefDesktop.current?.contentWindow;
-
-    // Guarantee the inactive iframe is ALWAYS muted & paused
-    inactiveWindow?.postMessage(
-      JSON.stringify({ event: "command", func: "pauseVideo", args: [] }),
-      "*",
-    );
-    inactiveWindow?.postMessage(
-      JSON.stringify({ event: "command", func: "mute", args: [] }),
-      "*",
-    );
-
-    // Send command to the active visible iframe
-    targetWindow?.postMessage(
+    heroVideoIframeRef.current?.contentWindow?.postMessage(
       JSON.stringify({ event: "command", func, args }),
       "*",
     );
@@ -207,11 +236,30 @@ export default function Home() {
   const isFeedbackInViewRef = useRef(false);
   const hasUserInteractedRef = useRef(false);
 
+  // Manual Sound Toggle Button Handler
+  const handleToggleSound = useCallback(() => {
+    hasUserInteractedRef.current = true;
+    setIsHeroMuted((prev) => {
+      const nextMuted = !prev;
+      if (nextMuted) {
+        postToHero("mute", []);
+      } else {
+        postToHero("unMute", []);
+        postToHero("setVolume", [100]);
+        postToHero("playVideo", []);
+      }
+      return nextMuted;
+    });
+  }, [postToHero]);
+
   // Functions to play/unmute and pause/mute cleanly preserving playback position
   const playAndUnmuteHero = useCallback(() => {
     postToHero("playVideo", []);
-    postToHero("unMute", []);
-    postToHero("setVolume", [100]);
+    if (hasUserInteractedRef.current) {
+      postToHero("unMute", []);
+      postToHero("setVolume", [100]);
+      setIsHeroMuted(false);
+    }
   }, [postToHero]);
 
   const pauseAndMuteHero = useCallback(() => {
@@ -232,11 +280,11 @@ export default function Home() {
 
   useEffect(() => {
     // Initial load: ensure video starts playing immediately on both mobile & desktop
+    // IMPORTANT: Keep video muted on initial load to strictly comply with browser Autoplay Policy.
+    // Calling unMute before user interaction causes Android Chrome / iOS Safari to PAUSE the video at 0:00!
     const startHeroPlayback = () => {
       if (isHeroInViewRef.current) {
         postToHero("playVideo", []);
-        postToHero("unMute", []);
-        postToHero("setVolume", [100]);
       }
     };
 
@@ -246,34 +294,31 @@ export default function Home() {
     const t3 = setTimeout(startHeroPlayback, 1200);
     const t4 = setTimeout(startHeroPlayback, 2400);
 
-    // On mobile devices (iOS/Android), audio unmuting requires a user gesture.
     // As soon as the user touches the screen, taps, or scrolls:
-    let gestureCount = 0;
     const handleGesture = () => {
-      if (gestureCount >= 4) return;
-      gestureCount++;
       hasUserInteractedRef.current = true;
+      setIsHeroMuted(false);
       if (isHeroInViewRef.current) {
-        postToHero("playVideo", []);
         postToHero("unMute", []);
         postToHero("setVolume", [100]);
+        postToHero("playVideo", []);
       }
     };
 
-    window.addEventListener("scroll", handleGesture, { passive: true });
     window.addEventListener("touchstart", handleGesture, { passive: true });
     window.addEventListener("pointerdown", handleGesture);
     window.addEventListener("click", handleGesture);
+    window.addEventListener("scroll", handleGesture, { passive: true });
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
       clearTimeout(t4);
-      window.removeEventListener("scroll", handleGesture);
       window.removeEventListener("touchstart", handleGesture);
       window.removeEventListener("pointerdown", handleGesture);
       window.removeEventListener("click", handleGesture);
+      window.removeEventListener("scroll", handleGesture);
     };
   }, [postToHero]);
 
@@ -286,8 +331,11 @@ export default function Home() {
           if (entry.isIntersecting) {
             isHeroInViewRef.current = true;
             postToHero("playVideo", []);
-            postToHero("unMute", []);
-            postToHero("setVolume", [100]);
+            if (hasUserInteractedRef.current) {
+              postToHero("unMute", []);
+              postToHero("setVolume", [100]);
+              setIsHeroMuted(false);
+            }
           } else {
             isHeroInViewRef.current = false;
             pauseAndMuteHero();
@@ -335,6 +383,7 @@ export default function Home() {
     pauseAndMuteHero,
     playAndUnmuteFeedback,
     pauseAndMuteFeedback,
+    postToHero,
   ]);
 
   const handleCopyEmail = () => {
@@ -497,7 +546,13 @@ export default function Home() {
         <div className="flex lg:hidden flex-col items-center gap-5">
           {/* 1. YOUTUBE MASTERCLASS VIDEO FIRST ON MOBILE */}
           <div className="w-full">
-            <HeroVideoCard iframeRef={heroVideoIframeRefMobile} />
+            {(!isMounted || !isDesktopLayout) && (
+              <HeroVideoCard
+                iframeRef={heroVideoIframeRef}
+                isMuted={isHeroMuted}
+                onToggleSound={handleToggleSound}
+              />
+            )}
           </div>
 
           {/* 2. GET EBOOK PRICE BUTTON SECOND ON MOBILE */}
@@ -824,7 +879,13 @@ export default function Home() {
 
           {/* Right Hero Column: Full Height YouTube Masterclass Video Card (P9T3a2-Onjc) */}
           <div className="col-span-5 h-full w-full flex flex-col">
-            <HeroVideoCard iframeRef={heroVideoIframeRefDesktop} />
+            {isMounted && isDesktopLayout && (
+              <HeroVideoCard
+                iframeRef={heroVideoIframeRef}
+                isMuted={isHeroMuted}
+                onToggleSound={handleToggleSound}
+              />
+            )}
           </div>
         </div>
       </section>
