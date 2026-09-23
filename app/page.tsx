@@ -97,6 +97,7 @@ function HeroVideoCard({ iframeRef }: HeroVideoCardProps) {
             className="w-full h-full border-0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
+            loading="eager"
           />
         </div>
       </div>
@@ -204,6 +205,7 @@ export default function Home() {
   // Track active visibility state across observer callbacks
   const isHeroInViewRef = useRef(true);
   const isFeedbackInViewRef = useRef(false);
+  const hasUserInteractedRef = useRef(false);
 
   // Functions to play/unmute and pause/mute cleanly preserving playback position
   const playAndUnmuteHero = useCallback(() => {
@@ -229,43 +231,55 @@ export default function Home() {
   }, [postToFeedback]);
 
   useEffect(() => {
-    // Initial load: Attempt sound unmuting with retry steps
-    const tryUnmuteHero = () => {
+    // Initial load: ensure video starts playing immediately on both mobile & desktop
+    const startHeroPlayback = () => {
       if (isHeroInViewRef.current) {
-        playAndUnmuteHero();
+        postToHero("playVideo", []);
+        // Desktop allows immediate unmuting without user gesture
+        if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+          postToHero("unMute", []);
+          postToHero("setVolume", [100]);
+        }
       }
     };
 
-    const t1 = setTimeout(tryUnmuteHero, 500);
-    const t2 = setTimeout(tryUnmuteHero, 1200);
-    const t3 = setTimeout(tryUnmuteHero, 2200);
+    startHeroPlayback();
+    const t1 = setTimeout(startHeroPlayback, 300);
+    const t2 = setTimeout(startHeroPlayback, 800);
+    const t3 = setTimeout(startHeroPlayback, 1500);
 
-    // If browser blocks unmuted audio prior to user gesture, unmute on first gesture
-    const handleFirstGesture = () => {
+    // On mobile devices (iOS/Android), audio unmuting requires a user gesture.
+    // As soon as the user touches the screen, taps, or scrolls:
+    const handleGesture = () => {
+      hasUserInteractedRef.current = true;
       if (isHeroInViewRef.current) {
-        playAndUnmuteHero();
+        postToHero("playVideo", []);
+        postToHero("unMute", []);
+        postToHero("setVolume", [100]);
       }
     };
 
-    window.addEventListener("scroll", handleFirstGesture, {
+    window.addEventListener("scroll", handleGesture, {
       passive: true,
       once: true,
     });
-    window.addEventListener("click", handleFirstGesture, { once: true });
-    window.addEventListener("touchstart", handleFirstGesture, {
+    window.addEventListener("touchstart", handleGesture, {
       passive: true,
       once: true,
     });
+    window.addEventListener("pointerdown", handleGesture, { once: true });
+    window.addEventListener("click", handleGesture, { once: true });
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
-      window.removeEventListener("scroll", handleFirstGesture);
-      window.removeEventListener("click", handleFirstGesture);
-      window.removeEventListener("touchstart", handleFirstGesture);
+      window.removeEventListener("scroll", handleGesture);
+      window.removeEventListener("touchstart", handleGesture);
+      window.removeEventListener("pointerdown", handleGesture);
+      window.removeEventListener("click", handleGesture);
     };
-  }, [playAndUnmuteHero]);
+  }, [postToHero]);
 
   useEffect(() => {
     // Hero Section Observer:
@@ -275,7 +289,15 @@ export default function Home() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             isHeroInViewRef.current = true;
-            playAndUnmuteHero();
+            postToHero("playVideo", []);
+            // Unmute if user has already interacted or if on desktop
+            if (
+              hasUserInteractedRef.current ||
+              (typeof window !== "undefined" && window.innerWidth >= 1024)
+            ) {
+              postToHero("unMute", []);
+              postToHero("setVolume", [100]);
+            }
           } else {
             isHeroInViewRef.current = false;
             pauseAndMuteHero();
