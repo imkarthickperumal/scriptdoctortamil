@@ -80,13 +80,32 @@ function OfferCountdownTimer({ compact = false }: { compact?: boolean }) {
 // Hero Video Player using official YouTube IFrame Player API
 interface HeroVideoPlayerProps {
   onPlayerReady: (player: any) => void;
+  onFirstInteraction?: () => void;
 }
 
-function HeroVideoPlayer({ onPlayerReady }: HeroVideoPlayerProps) {
+function HeroVideoPlayer({
+  onPlayerReady,
+  onFirstInteraction,
+}: HeroVideoPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerInstanceRef = useRef<any>(null);
   const onPlayerReadyRef = useRef(onPlayerReady);
   onPlayerReadyRef.current = onPlayerReady;
+  const [hasInteracted, setHasInteracted] = useState(false);
+
+  const handleUnmuteTap = () => {
+    setHasInteracted(true);
+    if (playerInstanceRef.current) {
+      try {
+        playerInstanceRef.current.unMute();
+        playerInstanceRef.current.setVolume(100);
+        playerInstanceRef.current.playVideo();
+      } catch {
+        /* ignore */
+      }
+    }
+    if (onFirstInteraction) onFirstInteraction();
+  };
 
   useEffect(() => {
     let destroyed = false;
@@ -156,6 +175,15 @@ function HeroVideoPlayer({ onPlayerReady }: HeroVideoPlayerProps) {
       <div className="relative rounded-3xl p-3 sm:p-4 xl:p-5 border shadow-2xl overflow-hidden bg-white border-amber-300 shadow-amber-500/20 flex flex-col h-full justify-between">
         <div className="relative aspect-video lg:aspect-auto lg:flex-1 lg:h-full min-h-[220px] sm:min-h-[260px] w-full rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-2xl bg-black [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:border-0">
           <div ref={containerRef} className="w-full h-full" />
+
+          {/* Invisible first-tap unmuter: instantly turns on 100% sound when user taps the video */}
+          {!hasInteracted && (
+            <div
+              onClick={handleUnmuteTap}
+              onTouchStart={handleUnmuteTap}
+              className="absolute inset-0 z-20 cursor-pointer"
+            />
+          )}
         </div>
       </div>
     </div>
