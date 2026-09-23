@@ -80,10 +80,9 @@ function OfferCountdownTimer({ compact = false }: { compact?: boolean }) {
 // Reusable Hero Video Component using P9T3a2-Onjc
 interface HeroVideoCardProps {
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
-  isActive?: boolean;
 }
 
-function HeroVideoCard({ iframeRef, isActive = true }: HeroVideoCardProps) {
+function HeroVideoCard({ iframeRef }: HeroVideoCardProps) {
   return (
     <div className="relative w-full max-w-md lg:max-w-none mx-auto group flex flex-col h-full">
       <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-rose-400 to-amber-500 rounded-3xl blur-xl opacity-40 group-hover:opacity-70 transition duration-700 animate-pulse-glow" />
@@ -91,22 +90,14 @@ function HeroVideoCard({ iframeRef, isActive = true }: HeroVideoCardProps) {
       <div className="relative rounded-3xl p-3 sm:p-4 xl:p-5 border shadow-2xl overflow-hidden bg-white border-amber-300 shadow-amber-500/20 flex flex-col h-full justify-between">
         {/* YouTube Masterclass Video Player Frame - standard 16:9 on mobile, FULL HEIGHT on webview */}
         <div className="relative aspect-video lg:aspect-auto lg:flex-1 lg:h-full min-h-[220px] sm:min-h-[260px] w-full rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-2xl bg-black">
-          {isActive ? (
-            <iframe
-              ref={iframeRef}
-              src="https://www.youtube.com/embed/P9T3a2-Onjc?enablejsapi=1&autoplay=1&mute=0&loop=1&playlist=P9T3a2-Onjc&rel=0&controls=1"
-              title="Script Doctor Tamil YouTube Masterclass"
-              className="w-full h-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
-          ) : (
-            <div className="w-full h-full bg-slate-950 flex items-center justify-center">
-              <span className="text-amber-500 font-semibold text-xs">
-                Script Doctor Tamil Masterclass
-              </span>
-            </div>
-          )}
+          <iframe
+            ref={iframeRef}
+            src="https://www.youtube.com/embed/P9T3a2-Onjc?enablejsapi=1&autoplay=1&mute=1&playsinline=1&loop=1&playlist=P9T3a2-Onjc&rel=0&controls=1"
+            title="Script Doctor Tamil YouTube Masterclass"
+            className="w-full h-full border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
         </div>
       </div>
     </div>
@@ -176,29 +167,33 @@ export default function Home() {
   const heroSectionRef = useRef<HTMLDivElement>(null);
   const readerFeedbackSectionRef = useRef<HTMLDivElement>(null);
 
-  // Screen size detection so ONLY ONE hero video iframe exists in DOM
-  const [isDesktopView, setIsDesktopView] = useState(true);
-
-  useEffect(() => {
-    const checkDesktop = () => {
-      setIsDesktopView(window.innerWidth >= 1024);
-    };
-    checkDesktop();
-    window.addEventListener("resize", checkDesktop);
-    return () => window.removeEventListener("resize", checkDesktop);
-  }, []);
-
   // Helper to send postMessage commands to ONLY the active Hero Video iframe
-  const postToHero = useCallback(
-    (func: string, args: any = []) => {
-      const msg = JSON.stringify({ event: "command", func, args });
-      const targetWindow = isDesktopView
-        ? heroVideoIframeRefDesktop.current?.contentWindow
-        : heroVideoIframeRefMobile.current?.contentWindow;
-      targetWindow?.postMessage(msg, "*");
-    },
-    [isDesktopView],
-  );
+  const postToHero = useCallback((func: string, args: any = []) => {
+    if (typeof window === "undefined") return;
+    const isDesktop = window.innerWidth >= 1024;
+    const targetWindow = isDesktop
+      ? heroVideoIframeRefDesktop.current?.contentWindow
+      : heroVideoIframeRefMobile.current?.contentWindow;
+    const inactiveWindow = isDesktop
+      ? heroVideoIframeRefMobile.current?.contentWindow
+      : heroVideoIframeRefDesktop.current?.contentWindow;
+
+    // Guarantee the inactive iframe is ALWAYS muted & paused
+    inactiveWindow?.postMessage(
+      JSON.stringify({ event: "command", func: "pauseVideo", args: [] }),
+      "*",
+    );
+    inactiveWindow?.postMessage(
+      JSON.stringify({ event: "command", func: "mute", args: [] }),
+      "*",
+    );
+
+    // Send command to the active visible iframe
+    targetWindow?.postMessage(
+      JSON.stringify({ event: "command", func, args }),
+      "*",
+    );
+  }, []);
 
   // Helper to send postMessage commands to Reader Feedback Video iframe
   const postToFeedback = useCallback((func: string, args: any = []) => {
@@ -490,10 +485,7 @@ export default function Home() {
         <div className="flex lg:hidden flex-col items-center gap-5">
           {/* 1. YOUTUBE MASTERCLASS VIDEO FIRST ON MOBILE */}
           <div className="w-full">
-            <HeroVideoCard
-              iframeRef={heroVideoIframeRefMobile}
-              isActive={!isDesktopView}
-            />
+            <HeroVideoCard iframeRef={heroVideoIframeRefMobile} />
           </div>
 
           {/* 2. GET EBOOK PRICE BUTTON SECOND ON MOBILE */}
@@ -820,10 +812,7 @@ export default function Home() {
 
           {/* Right Hero Column: Full Height YouTube Masterclass Video Card (P9T3a2-Onjc) */}
           <div className="col-span-5 h-full w-full flex flex-col">
-            <HeroVideoCard
-              iframeRef={heroVideoIframeRefDesktop}
-              isActive={isDesktopView}
-            />
+            <HeroVideoCard iframeRef={heroVideoIframeRefDesktop} />
           </div>
         </div>
       </section>
@@ -936,7 +925,7 @@ export default function Home() {
               <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-xl bg-black my-2">
                 <iframe
                   ref={videoIframeRef3}
-                  src="https://www.youtube.com/embed/RazScz2oK5E?enablejsapi=1&autoplay=0&mute=0&loop=1&playlist=RazScz2oK5E&rel=0&controls=1"
+                  src="https://www.youtube.com/embed/RazScz2oK5E?enablejsapi=1&autoplay=0&mute=1&playsinline=1&loop=1&playlist=RazScz2oK5E&rel=0&controls=1"
                   title="Script Doctor Tamil Reader Feedback Video Review"
                   className="w-full h-full border-0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
