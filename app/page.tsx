@@ -305,12 +305,11 @@ export default function Home() {
     postToFeedback("setVolume", [100]);
   }, [postToFeedback]);
 
-  const pauseAndMuteFeedback = useCallback(() => {
+  const pauseFeedback = useCallback(() => {
     postToFeedback("pauseVideo", []);
-    postToFeedback("mute", []);
   }, [postToFeedback]);
 
-  // User gesture detection: ensure sound and playback are active on touch/click/scroll
+  // User gesture detection: ensure sound and playback are active on touch/click/scroll for both videos
   useEffect(() => {
     const handleGesture = () => {
       const player = heroPlayerRef.current;
@@ -323,6 +322,8 @@ export default function Home() {
           /* ignore */
         }
       }
+      postToFeedback("unMute", []);
+      postToFeedback("setVolume", [100]);
     };
 
     window.addEventListener("touchstart", handleGesture, { passive: true });
@@ -340,7 +341,7 @@ export default function Home() {
       window.removeEventListener("click", handleGesture);
       window.removeEventListener("scroll", handleGesture);
     };
-  }, []);
+  }, [postToFeedback]);
 
   // IntersectionObserver: pause/play hero & feedback videos based on scroll position
   useEffect(() => {
@@ -388,14 +389,13 @@ export default function Home() {
             if (player) {
               try {
                 player.pauseVideo();
-                player.mute();
               } catch {
                 /* ignore */
               }
             }
           } else {
             isFeedbackInViewRef.current = false;
-            pauseAndMuteFeedback();
+            pauseFeedback();
           }
         });
       },
@@ -410,7 +410,7 @@ export default function Home() {
       heroObserver.disconnect();
       feedbackObserver.disconnect();
     };
-  }, [playAndUnmuteFeedback, pauseAndMuteFeedback]);
+  }, [playAndUnmuteFeedback, pauseFeedback]);
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText("ScriptDoctortamil@gmail.com");
