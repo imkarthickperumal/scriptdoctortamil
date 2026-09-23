@@ -134,6 +134,8 @@ function HeroVideoPlayer({
               if (!destroyed) {
                 try {
                   event.target.playVideo();
+                  event.target.unMute();
+                  event.target.setVolume(100);
                 } catch {
                   /* ignore */
                 }
@@ -181,6 +183,8 @@ function HeroVideoPlayer({
             <div
               onClick={handleUnmuteTap}
               onTouchStart={handleUnmuteTap}
+              onTouchEnd={handleUnmuteTap}
+              onPointerUp={handleUnmuteTap}
               className="absolute inset-0 z-20 cursor-pointer"
             />
           )}
@@ -282,10 +286,8 @@ export default function Home() {
     heroPlayerRef.current = player;
     try {
       player.playVideo();
-      if (typeof window !== "undefined" && window.innerWidth >= 1024) {
-        player.unMute();
-        player.setVolume(100);
-      }
+      player.unMute();
+      player.setVolume(100);
     } catch {
       /* ignore */
     }
@@ -324,13 +326,17 @@ export default function Home() {
     };
 
     window.addEventListener("touchstart", handleGesture, { passive: true });
+    window.addEventListener("touchend", handleGesture, { passive: true });
     window.addEventListener("pointerdown", handleGesture);
+    window.addEventListener("pointerup", handleGesture);
     window.addEventListener("click", handleGesture);
     window.addEventListener("scroll", handleGesture, { passive: true });
 
     return () => {
       window.removeEventListener("touchstart", handleGesture);
+      window.removeEventListener("touchend", handleGesture);
       window.removeEventListener("pointerdown", handleGesture);
+      window.removeEventListener("pointerup", handleGesture);
       window.removeEventListener("click", handleGesture);
       window.removeEventListener("scroll", handleGesture);
     };
