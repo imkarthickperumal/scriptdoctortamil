@@ -77,180 +77,160 @@ function OfferCountdownTimer({ compact = false }: { compact?: boolean }) {
   );
 }
 
-// ─── Shared Video Player ────────────────────────────────────────────────────
-// Autoplays muted (browser-enforced). Shows a glowing "Tap for Sound" button.
-// After first tap: unmutes at full volume. Button becomes a live mute toggle.
-interface VideoPlayerProps {
-  src: string;
-  /** Extra classes for the outermost wrapper */
-  wrapperClassName?: string;
-  /** Extra classes for the inner video container */
-  containerClassName?: string;
+// Hero Video Player using official YouTube IFrame Player API
+interface HeroVideoPlayerProps {
+  onPlayerReady: (player: any) => void;
+  onFirstInteraction?: () => void;
 }
 
-function VideoPlayer({ src, wrapperClassName = "", containerClassName = "" }: VideoPlayerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+function HeroVideoPlayer({
+  onPlayerReady,
+  onFirstInteraction,
+}: HeroVideoPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isMuted, setIsMuted] = useState(true);
-  const wasSoundOnRef = useRef(false);
+  const playerInstanceRef = useRef<any>(null);
+  const onPlayerReadyRef = useRef(onPlayerReady);
+  onPlayerReadyRef.current = onPlayerReady;
+  const [hasInteracted, setHasInteracted] = useState(false);
+  const shouldUnmuteRef = useRef(false);
 
-  // 1️⃣ Muted autoplay on mount (browser policy requires this on first load)
+  const handleUnmuteTap = () => {
+    setHasInteracted(true);
+    shouldUnmuteRef.current = true;
+    const player = playerInstanceRef.current;
+    if (player) {
+      try {
+        player.unMute();
+        player.setVolume(100);
+        player.playVideo();
+      } catch {
+        /* ignore */
+      }
+    }
+    if (onFirstInteraction) onFirstInteraction();
+  };
+
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    video.muted = true;
-    video.volume = 1;
-    video.play().catch(() => {/* blocked */});
-  }, []);
+    let destroyed = false;
 
-  // 2️⃣ ANY first interaction on the page unlocks sound immediately.
-  //    pointerdown fires before click so it's as fast as possible.
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+    const createPlayer = () => {
+      if (destroyed || !containerRef.current || playerInstanceRef.current)
+        return;
 
-    const unlockSound = () => {
-      if (wasSoundOnRef.current) return;
-      video.muted = false;
-      video.volume = 1;
-      setIsMuted(false);
-      wasSoundOnRef.current = true;
-      if (video.paused) video.play().catch(() => {});
+      playerInstanceRef.current = new (window as any).YT.Player(
+        containerRef.current,
+        {
+          videoId: "P9T3a2-Onjc",
+          width: "100%",
+          height: "100%",
+          playerVars: {
+            autoplay: 1,
+            mute: 1,
+            playsinline: 1,
+            loop: 1,
+            playlist: "P9T3a2-Onjc",
+            rel: 0,
+            controls: 1,
+          },
+          events: {
+            onReady: (event: any) => {
+              if (!destroyed) {
+                try {
+                  if (shouldUnmuteRef.current) {
+                    event.target.unMute();
+                    event.target.setVolume(100);
+                  }
+                  event.target.playVideo();
+                } catch {
+                  /* ignore */
+                }
+                onPlayerReadyRef.current(event.target);
+              }
+            },
+          },
+        },
+      );
     };
 
-    window.addEventListener("pointerdown", unlockSound, { once: true });
-    window.addEventListener("touchstart",  unlockSound, { once: true, passive: true });
-    window.addEventListener("keydown",     unlockSound, { once: true });
+    if ((window as any).YT?.Player) {
+      createPlayer();
+    } else {
+      const prevCb = (window as any).onYouTubeIframeAPIReady;
+      (window as any).onYouTubeIframeAPIReady = () => {
+        if (typeof prevCb === "function") prevCb();
+        createPlayer();
+      };
+    }
 
     return () => {
-      window.removeEventListener("pointerdown", unlockSound);
-      window.removeEventListener("touchstart",  unlockSound);
-      window.removeEventListener("keydown",     unlockSound);
+      destroyed = true;
+      if (playerInstanceRef.current?.destroy) {
+        try {
+          playerInstanceRef.current.destroy();
+        } catch {
+          /* ignore */
+        }
+        playerInstanceRef.current = null;
+      }
     };
   }, []);
 
-  // 3️⃣ Pause when scrolled out; resume with saved sound state when back.
-  useEffect(() => {
-    const video = videoRef.current;
-    const container = containerRef.current;
-    if (!video || !container) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const soundOn = wasSoundOnRef.current;
-            video.muted = !soundOn;
-            video.volume = soundOn ? 1 : 0;
-            setIsMuted(!soundOn);
-            if (video.paused) video.play().catch(() => {});
-          } else {
-            video.pause();
-          }
-        });
-      },
-      { threshold: 0.25 },
-    );
-
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
-
-  const toggleMute = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    const next = !isMuted;
-    video.muted = next;
-    video.volume = next ? 0 : 1;
-    setIsMuted(next);
-    wasSoundOnRef.current = !next;
-    if (video.paused) video.play().catch(() => {});
-  }, [isMuted]);
-
-  return (
-    <div className={wrapperClassName}>
-      <div ref={containerRef} className={`relative w-full h-full overflow-hidden bg-black ${containerClassName}`}>
-        <video
-          ref={videoRef}
-          src={src}
-          autoPlay
-          loop
-          playsInline
-          controls
-          className="w-full h-full object-cover"
-          preload="auto"
-        />
-
-        {/* Sound toggle button — pulsing when muted, solid amber when sound on */}
-        <button
-          type="button"
-          onClick={toggleMute}
-          aria-label={isMuted ? "Unmute video" : "Mute video"}
-          className={`
-            absolute top-3 left-3 z-30
-            flex items-center gap-1.5
-            px-3 py-1.5 rounded-full
-            text-xs font-black tracking-wide
-            border shadow-lg
-            transition-all duration-200
-            cursor-pointer select-none
-            active:scale-95
-            ${isMuted
-              ? "bg-black/80 text-white border-white/30 hover:bg-amber-500 hover:border-amber-400 hover:text-slate-950 animate-pulse"
-              : "bg-amber-500 text-slate-950 border-amber-400 hover:bg-amber-400"
-            }
-          `}
-        >
-          {isMuted ? (
-            <>
-              <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                <line x1="23" y1="9" x2="17" y2="15" />
-                <line x1="17" y1="9" x2="23" y2="15" />
-              </svg>
-              <span>Tap for Sound</span>
-            </>
-          ) : (
-            <>
-              <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-              </svg>
-              <span>Sound ON</span>
-            </>
-          )}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-
-// Hero wrapper — full-height video card that stretches to match the left text column
-function HeroVideoPlayer() {
   return (
     <div className="relative w-full max-w-md lg:max-w-none mx-auto group flex flex-col h-full">
       <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-rose-400 to-amber-500 rounded-3xl blur-xl opacity-40 group-hover:opacity-70 transition duration-700 animate-pulse-glow" />
-      {/* flex-1 so the inner card grows to fill the outer h-full column */}
-      <div className="relative rounded-3xl p-3 sm:p-4 xl:p-5 border shadow-2xl overflow-hidden bg-white border-amber-300 shadow-amber-500/20 flex flex-col flex-1">
-        <VideoPlayer
-          src="/videos/hero-video.mp4"
-          wrapperClassName="flex flex-col flex-1"
-          containerClassName="flex-1 min-h-[260px] lg:min-h-[400px] rounded-2xl border-2 border-amber-500/60 shadow-2xl"
-        />
+
+      <div className="relative rounded-3xl p-3 sm:p-4 xl:p-5 border shadow-2xl overflow-hidden bg-white border-amber-300 shadow-amber-500/20 flex flex-col h-full justify-between">
+        <div className="relative aspect-video lg:aspect-auto lg:flex-1 lg:h-full min-h-[220px] sm:min-h-[260px] w-full rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-2xl bg-black [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:border-0">
+          <div ref={containerRef} className="w-full h-full" />
+
+          {/* Center Play & Turn Sound On Overlay */}
+          {!hasInteracted && (
+            <div
+              onClick={handleUnmuteTap}
+              onTouchEnd={handleUnmuteTap}
+              className="absolute inset-0 z-20 flex flex-col items-center justify-center cursor-pointer bg-black/50 backdrop-blur-[2px] transition-all group/playbtn select-none p-4"
+              role="button"
+              aria-label="Click to play video with sound"
+              tabIndex={0}
+            >
+              <div className="relative flex items-center justify-center">
+                {/* Glowing animated ripple pulse rings */}
+                <div className="absolute w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-amber-500/30 animate-ping pointer-events-none" />
+                <div className="absolute w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-amber-400/40 animate-pulse pointer-events-none" />
+
+                {/* Big Center Play Button */}
+                <div className="relative z-10 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-amber-400 via-amber-500 to-yellow-500 flex items-center justify-center shadow-2xl shadow-amber-500/80 border-4 border-white/95 group-hover/playbtn:scale-110 group-active/playbtn:scale-95 transition-transform duration-200">
+                  <svg
+                    className="w-8 h-8 sm:w-10 sm:h-10 text-slate-950 ml-1 drop-shadow"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Bilingual Sound Alert Badge */}
+              <div className="mt-4 flex flex-col items-center gap-1 text-center bg-black/80 px-4 py-2.5 rounded-2xl border border-amber-400/40 shadow-2xl backdrop-blur-md pointer-events-none">
+                <span className="text-amber-300 font-black text-xs sm:text-sm tracking-wide flex items-center gap-1.5">
+                  <svg
+                    className="w-4 h-4 animate-bounce text-amber-400"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                  </svg>
+                  <span>ஒலி கேட்க கிளிக் செய்யவும்</span>
+                </span>
+                <span className="text-white font-bold text-[11px] sm:text-xs">
+                  Click / Tap for Sound 🔊
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
-  );
-}
-
-// Feedback wrapper — preserves original card styling
-function FeedbackVideoPlayer() {
-  return (
-    <VideoPlayer
-      src="/videos/feedback-video.mp4"
-      containerClassName="aspect-[16/9] rounded-2xl border-2 border-amber-500/60 shadow-xl my-2"
-    />
   );
 }
 
@@ -309,8 +289,9 @@ export default function Home() {
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  // Reader Feedback video ref (native HTML5, no YouTube)
-  const feedbackVideoRef = useRef<HTMLVideoElement>(null);
+  // YouTube Player API refs
+  const heroPlayerRef = useRef<any>(null); // YT.Player instance
+  const videoIframeRef3 = useRef<HTMLIFrameElement>(null); // Reader Feedback Video (RazScz2oK5E)
 
   const heroSectionRef = useRef<HTMLDivElement>(null);
   const readerFeedbackSectionRef = useRef<HTMLDivElement>(null);
@@ -319,54 +300,159 @@ export default function Home() {
   const [isDesktopLayout, setIsDesktopLayout] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
-  // Track visibility refs
+  // Track active visibility state across observer callbacks
   const isHeroInViewRef = useRef(true);
   const isFeedbackInViewRef = useRef(false);
 
-  // Detect responsive layout on mount
+  // Load YouTube IFrame Player API script & detect responsive layout
   useEffect(() => {
     setIsMounted(true);
     const checkIsDesktop = () => setIsDesktopLayout(window.innerWidth >= 1024);
     checkIsDesktop();
     window.addEventListener("resize", checkIsDesktop);
+
+    // Load YouTube IFrame API script (only once)
+    if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      document.head.appendChild(tag);
+    }
+
     return () => window.removeEventListener("resize", checkIsDesktop);
   }, []);
 
-  // IntersectionObserver: auto-play feedback video when scrolled into view
+  // Callback when YT.Player fires onReady — store reference and start playback
+  const handleHeroPlayerReady = useCallback((player: any) => {
+    heroPlayerRef.current = player;
+    try {
+      player.playVideo();
+      if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+        player.unMute();
+        player.setVolume(100);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  // Helper to send postMessage commands to Reader Feedback Video iframe
+  const postToFeedback = useCallback((func: string, args: any = []) => {
+    const msg = JSON.stringify({ event: "command", func, args });
+    videoIframeRef3.current?.contentWindow?.postMessage(msg, "*");
+  }, []);
+
+  const playAndUnmuteFeedback = useCallback(() => {
+    postToFeedback("playVideo", []);
+    postToFeedback("unMute", []);
+    postToFeedback("setVolume", [100]);
+  }, [postToFeedback]);
+
+  const pauseFeedback = useCallback(() => {
+    postToFeedback("pauseVideo", []);
+  }, [postToFeedback]);
+
+  // User gesture detection: ensure sound and playback are active on touch/click/scroll for both videos
+  useEffect(() => {
+    const handleGesture = () => {
+      const player = heroPlayerRef.current;
+      if (player && isHeroInViewRef.current) {
+        try {
+          player.unMute();
+          player.setVolume(100);
+          player.playVideo();
+        } catch {
+          /* ignore */
+        }
+      }
+      postToFeedback("unMute", []);
+      postToFeedback("setVolume", [100]);
+    };
+
+    window.addEventListener("touchstart", handleGesture, { passive: true });
+    window.addEventListener("touchend", handleGesture, { passive: true });
+    window.addEventListener("pointerdown", handleGesture);
+    window.addEventListener("pointerup", handleGesture);
+    window.addEventListener("click", handleGesture);
+    window.addEventListener("scroll", handleGesture, { passive: true });
+
+    return () => {
+      window.removeEventListener("touchstart", handleGesture);
+      window.removeEventListener("touchend", handleGesture);
+      window.removeEventListener("pointerdown", handleGesture);
+      window.removeEventListener("pointerup", handleGesture);
+      window.removeEventListener("click", handleGesture);
+      window.removeEventListener("scroll", handleGesture);
+    };
+  }, [postToFeedback]);
+
+  // IntersectionObserver: pause/play hero & feedback videos based on scroll position
   useEffect(() => {
     const heroObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          isHeroInViewRef.current = entry.isIntersecting;
+          const player = heroPlayerRef.current;
+          if (entry.isIntersecting) {
+            isHeroInViewRef.current = true;
+            if (player) {
+              try {
+                player.playVideo();
+                player.unMute();
+                player.setVolume(100);
+              } catch {
+                /* ignore */
+              }
+            }
+          } else {
+            isHeroInViewRef.current = false;
+            if (player) {
+              try {
+                player.pauseVideo();
+              } catch {
+                /* ignore */
+              }
+            }
+          }
         });
       },
       { threshold: 0.1 },
     );
-    if (heroSectionRef.current) heroObserver.observe(heroSectionRef.current);
+
+    if (heroSectionRef.current) {
+      heroObserver.observe(heroSectionRef.current);
+    }
 
     const feedbackObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          const video = feedbackVideoRef.current;
           if (entry.isIntersecting) {
             isFeedbackInViewRef.current = true;
-            if (video && video.paused) video.play().catch(() => {});
+            playAndUnmuteFeedback();
+            const player = heroPlayerRef.current;
+            if (player) {
+              try {
+                player.pauseVideo();
+              } catch {
+                /* ignore */
+              }
+            }
           } else {
             isFeedbackInViewRef.current = false;
-            if (video && !video.paused) video.pause();
+            pauseFeedback();
           }
         });
       },
       { threshold: 0.2 },
     );
-    if (readerFeedbackSectionRef.current)
+
+    if (readerFeedbackSectionRef.current) {
       feedbackObserver.observe(readerFeedbackSectionRef.current);
+    }
 
     return () => {
       heroObserver.disconnect();
       feedbackObserver.disconnect();
     };
-  }, []);
+  }, [playAndUnmuteFeedback, pauseFeedback]);
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText("ScriptDoctortamil@gmail.com");
@@ -526,10 +612,10 @@ export default function Home() {
       >
         {/* MOBILE VIEW SPECIFIC ORDER (Shows 1. Video -> 2. Price Button -> 3. Reduced Size Content) */}
         <div className="flex lg:hidden flex-col items-center gap-5">
-          {/* 1. HERO VIDEO FIRST ON MOBILE */}
+          {/* 1. YOUTUBE MASTERCLASS VIDEO FIRST ON MOBILE */}
           <div className="w-full">
             {(!isMounted || !isDesktopLayout) && (
-              <HeroVideoPlayer />
+              <HeroVideoPlayer onPlayerReady={handleHeroPlayerReady} />
             )}
           </div>
 
@@ -855,10 +941,10 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right Hero Column: Full Height MP4 Hero Video Card */}
-          <div className="col-span-5 flex flex-col" style={{ minHeight: "420px" }}>
+          {/* Right Hero Column: Full Height YouTube Masterclass Video Card (P9T3a2-Onjc) */}
+          <div className="col-span-5 h-full w-full flex flex-col">
             {isMounted && isDesktopLayout && (
-              <HeroVideoPlayer />
+              <HeroVideoPlayer onPlayerReady={handleHeroPlayerReady} />
             )}
           </div>
         </div>
@@ -968,8 +1054,17 @@ export default function Home() {
                 <span>💬</span> Reader Feedback &amp; Video Review
               </h3>
 
-              {/* Native HTML5 Feedback Video (HD, muted autoplay + first-tap unmute) */}
-              <FeedbackVideoPlayer />
+              {/* YouTube Video Frame (16:9 Aspect Widescreen) */}
+              <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-xl bg-black my-2">
+                <iframe
+                  ref={videoIframeRef3}
+                  src="https://www.youtube.com/embed/RazScz2oK5E?enablejsapi=1&autoplay=0&mute=0&playsinline=1&loop=1&playlist=RazScz2oK5E&rel=0&controls=1"
+                  title="Script Doctor Tamil Reader Feedback Video Review"
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              </div>
             </div>
 
             <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3">
