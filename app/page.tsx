@@ -77,118 +77,180 @@ function OfferCountdownTimer({ compact = false }: { compact?: boolean }) {
   );
 }
 
-// Hero Video Player using official YouTube IFrame Player API
-interface HeroVideoPlayerProps {
-  onPlayerReady: (player: any) => void;
-  onFirstInteraction?: () => void;
+// ─── Shared Video Player ────────────────────────────────────────────────────
+// Autoplays muted (browser-enforced). Shows a glowing "Tap for Sound" button.
+// After first tap: unmutes at full volume. Button becomes a live mute toggle.
+interface VideoPlayerProps {
+  src: string;
+  /** Extra classes for the outermost wrapper */
+  wrapperClassName?: string;
+  /** Extra classes for the inner video container */
+  containerClassName?: string;
 }
 
-function HeroVideoPlayer({
-  onPlayerReady,
-  onFirstInteraction,
-}: HeroVideoPlayerProps) {
+function VideoPlayer({ src, wrapperClassName = "", containerClassName = "" }: VideoPlayerProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const playerInstanceRef = useRef<any>(null);
-  const onPlayerReadyRef = useRef(onPlayerReady);
-  onPlayerReadyRef.current = onPlayerReady;
-  const [hasInteracted, setHasInteracted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const wasSoundOnRef = useRef(false);
 
-  const handleUnmuteTap = () => {
-    setHasInteracted(true);
-    if (playerInstanceRef.current) {
-      try {
-        playerInstanceRef.current.unMute();
-        playerInstanceRef.current.setVolume(100);
-        playerInstanceRef.current.playVideo();
-      } catch {
-        /* ignore */
-      }
-    }
-    if (onFirstInteraction) onFirstInteraction();
-  };
-
+  // 1️⃣ Muted autoplay on mount (browser policy requires this on first load)
   useEffect(() => {
-    let destroyed = false;
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = true;
+    video.volume = 1;
+    video.play().catch(() => {/* blocked */});
+  }, []);
 
-    const createPlayer = () => {
-      if (destroyed || !containerRef.current || playerInstanceRef.current)
-        return;
+  // 2️⃣ ANY first interaction on the page unlocks sound immediately.
+  //    pointerdown fires before click so it's as fast as possible.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
 
-      playerInstanceRef.current = new (window as any).YT.Player(
-        containerRef.current,
-        {
-          videoId: "P9T3a2-Onjc",
-          width: "100%",
-          height: "100%",
-          playerVars: {
-            autoplay: 1,
-            mute: 1,
-            playsinline: 1,
-            loop: 1,
-            playlist: "P9T3a2-Onjc",
-            rel: 0,
-            controls: 1,
-          },
-          events: {
-            onReady: (event: any) => {
-              if (!destroyed) {
-                try {
-                  event.target.playVideo();
-                } catch {
-                  /* ignore */
-                }
-                onPlayerReadyRef.current(event.target);
-              }
-            },
-          },
-        },
-      );
+    const unlockSound = () => {
+      if (wasSoundOnRef.current) return;
+      video.muted = false;
+      video.volume = 1;
+      setIsMuted(false);
+      wasSoundOnRef.current = true;
+      if (video.paused) video.play().catch(() => {});
     };
 
-    if ((window as any).YT?.Player) {
-      createPlayer();
-    } else {
-      const prevCb = (window as any).onYouTubeIframeAPIReady;
-      (window as any).onYouTubeIframeAPIReady = () => {
-        if (typeof prevCb === "function") prevCb();
-        createPlayer();
-      };
-    }
+    window.addEventListener("pointerdown", unlockSound, { once: true });
+    window.addEventListener("touchstart",  unlockSound, { once: true, passive: true });
+    window.addEventListener("keydown",     unlockSound, { once: true });
 
     return () => {
-      destroyed = true;
-      if (playerInstanceRef.current?.destroy) {
-        try {
-          playerInstanceRef.current.destroy();
-        } catch {
-          /* ignore */
-        }
-        playerInstanceRef.current = null;
-      }
+      window.removeEventListener("pointerdown", unlockSound);
+      window.removeEventListener("touchstart",  unlockSound);
+      window.removeEventListener("keydown",     unlockSound);
     };
   }, []);
 
+  // 3️⃣ Pause when scrolled out; resume with saved sound state when back.
+  useEffect(() => {
+    const video = videoRef.current;
+    const container = containerRef.current;
+    if (!video || !container) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const soundOn = wasSoundOnRef.current;
+            video.muted = !soundOn;
+            video.volume = soundOn ? 1 : 0;
+            setIsMuted(!soundOn);
+            if (video.paused) video.play().catch(() => {});
+          } else {
+            video.pause();
+          }
+        });
+      },
+      { threshold: 0.25 },
+    );
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const next = !isMuted;
+    video.muted = next;
+    video.volume = next ? 0 : 1;
+    setIsMuted(next);
+    wasSoundOnRef.current = !next;
+    if (video.paused) video.play().catch(() => {});
+  }, [isMuted]);
+
+  return (
+    <div className={wrapperClassName}>
+      <div ref={containerRef} className={`relative w-full h-full overflow-hidden bg-black ${containerClassName}`}>
+        <video
+          ref={videoRef}
+          src={src}
+          autoPlay
+          loop
+          playsInline
+          controls
+          className="w-full h-full object-cover"
+          preload="auto"
+        />
+
+        {/* Sound toggle button — pulsing when muted, solid amber when sound on */}
+        <button
+          type="button"
+          onClick={toggleMute}
+          aria-label={isMuted ? "Unmute video" : "Mute video"}
+          className={`
+            absolute top-3 left-3 z-30
+            flex items-center gap-1.5
+            px-3 py-1.5 rounded-full
+            text-xs font-black tracking-wide
+            border shadow-lg
+            transition-all duration-200
+            cursor-pointer select-none
+            active:scale-95
+            ${isMuted
+              ? "bg-black/80 text-white border-white/30 hover:bg-amber-500 hover:border-amber-400 hover:text-slate-950 animate-pulse"
+              : "bg-amber-500 text-slate-950 border-amber-400 hover:bg-amber-400"
+            }
+          `}
+        >
+          {isMuted ? (
+            <>
+              <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <line x1="23" y1="9" x2="17" y2="15" />
+                <line x1="17" y1="9" x2="23" y2="15" />
+              </svg>
+              <span>Tap for Sound</span>
+            </>
+          ) : (
+            <>
+              <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+              </svg>
+              <span>Sound ON</span>
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
+// Hero wrapper — full-height video card that stretches to match the left text column
+function HeroVideoPlayer() {
   return (
     <div className="relative w-full max-w-md lg:max-w-none mx-auto group flex flex-col h-full">
       <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-rose-400 to-amber-500 rounded-3xl blur-xl opacity-40 group-hover:opacity-70 transition duration-700 animate-pulse-glow" />
-
-      <div className="relative rounded-3xl p-3 sm:p-4 xl:p-5 border shadow-2xl overflow-hidden bg-white border-amber-300 shadow-amber-500/20 flex flex-col h-full justify-between">
-        <div className="relative aspect-video lg:aspect-auto lg:flex-1 lg:h-full min-h-[220px] sm:min-h-[260px] w-full rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-2xl bg-black [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:border-0">
-          <div ref={containerRef} className="w-full h-full" />
-
-          {/* Invisible first-tap unmuter: instantly turns on 100% sound when user taps the video */}
-          {!hasInteracted && (
-            <div
-              onClick={handleUnmuteTap}
-              onTouchStart={handleUnmuteTap}
-              onTouchEnd={handleUnmuteTap}
-              onPointerUp={handleUnmuteTap}
-              className="absolute inset-0 z-20 cursor-pointer"
-            />
-          )}
-        </div>
+      {/* flex-1 so the inner card grows to fill the outer h-full column */}
+      <div className="relative rounded-3xl p-3 sm:p-4 xl:p-5 border shadow-2xl overflow-hidden bg-white border-amber-300 shadow-amber-500/20 flex flex-col flex-1">
+        <VideoPlayer
+          src="/videos/hero-video.mp4"
+          wrapperClassName="flex flex-col flex-1"
+          containerClassName="flex-1 min-h-[260px] lg:min-h-[400px] rounded-2xl border-2 border-amber-500/60 shadow-2xl"
+        />
       </div>
     </div>
+  );
+}
+
+// Feedback wrapper — preserves original card styling
+function FeedbackVideoPlayer() {
+  return (
+    <VideoPlayer
+      src="/videos/feedback-video.mp4"
+      containerClassName="aspect-[16/9] rounded-2xl border-2 border-amber-500/60 shadow-xl my-2"
+    />
   );
 }
 
@@ -247,9 +309,8 @@ export default function Home() {
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  // YouTube Player API refs
-  const heroPlayerRef = useRef<any>(null); // YT.Player instance
-  const videoIframeRef3 = useRef<HTMLIFrameElement>(null); // Reader Feedback Video (RazScz2oK5E)
+  // Reader Feedback video ref (native HTML5, no YouTube)
+  const feedbackVideoRef = useRef<HTMLVideoElement>(null);
 
   const heroSectionRef = useRef<HTMLDivElement>(null);
   const readerFeedbackSectionRef = useRef<HTMLDivElement>(null);
@@ -258,159 +319,54 @@ export default function Home() {
   const [isDesktopLayout, setIsDesktopLayout] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
-  // Track active visibility state across observer callbacks
+  // Track visibility refs
   const isHeroInViewRef = useRef(true);
   const isFeedbackInViewRef = useRef(false);
 
-  // Load YouTube IFrame Player API script & detect responsive layout
+  // Detect responsive layout on mount
   useEffect(() => {
     setIsMounted(true);
     const checkIsDesktop = () => setIsDesktopLayout(window.innerWidth >= 1024);
     checkIsDesktop();
     window.addEventListener("resize", checkIsDesktop);
-
-    // Load YouTube IFrame API script (only once)
-    if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
-      const tag = document.createElement("script");
-      tag.src = "https://www.youtube.com/iframe_api";
-      document.head.appendChild(tag);
-    }
-
     return () => window.removeEventListener("resize", checkIsDesktop);
   }, []);
 
-  // Callback when YT.Player fires onReady — store reference and start playback
-  const handleHeroPlayerReady = useCallback((player: any) => {
-    heroPlayerRef.current = player;
-    try {
-      player.playVideo();
-      if (typeof window !== "undefined" && window.innerWidth >= 1024) {
-        player.unMute();
-        player.setVolume(100);
-      }
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  // Helper to send postMessage commands to Reader Feedback Video iframe
-  const postToFeedback = useCallback((func: string, args: any = []) => {
-    const msg = JSON.stringify({ event: "command", func, args });
-    videoIframeRef3.current?.contentWindow?.postMessage(msg, "*");
-  }, []);
-
-  const playAndUnmuteFeedback = useCallback(() => {
-    postToFeedback("playVideo", []);
-    postToFeedback("unMute", []);
-    postToFeedback("setVolume", [100]);
-  }, [postToFeedback]);
-
-  const pauseFeedback = useCallback(() => {
-    postToFeedback("pauseVideo", []);
-  }, [postToFeedback]);
-
-  // User gesture detection: ensure sound and playback are active on touch/click/scroll for both videos
-  useEffect(() => {
-    const handleGesture = () => {
-      const player = heroPlayerRef.current;
-      if (player && isHeroInViewRef.current) {
-        try {
-          player.unMute();
-          player.setVolume(100);
-          player.playVideo();
-        } catch {
-          /* ignore */
-        }
-      }
-      postToFeedback("unMute", []);
-      postToFeedback("setVolume", [100]);
-    };
-
-    window.addEventListener("touchstart", handleGesture, { passive: true });
-    window.addEventListener("touchend", handleGesture, { passive: true });
-    window.addEventListener("pointerdown", handleGesture);
-    window.addEventListener("pointerup", handleGesture);
-    window.addEventListener("click", handleGesture);
-    window.addEventListener("scroll", handleGesture, { passive: true });
-
-    return () => {
-      window.removeEventListener("touchstart", handleGesture);
-      window.removeEventListener("touchend", handleGesture);
-      window.removeEventListener("pointerdown", handleGesture);
-      window.removeEventListener("pointerup", handleGesture);
-      window.removeEventListener("click", handleGesture);
-      window.removeEventListener("scroll", handleGesture);
-    };
-  }, [postToFeedback]);
-
-  // IntersectionObserver: pause/play hero & feedback videos based on scroll position
+  // IntersectionObserver: auto-play feedback video when scrolled into view
   useEffect(() => {
     const heroObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          const player = heroPlayerRef.current;
-          if (entry.isIntersecting) {
-            isHeroInViewRef.current = true;
-            if (player) {
-              try {
-                player.playVideo();
-                player.unMute();
-                player.setVolume(100);
-              } catch {
-                /* ignore */
-              }
-            }
-          } else {
-            isHeroInViewRef.current = false;
-            if (player) {
-              try {
-                player.pauseVideo();
-              } catch {
-                /* ignore */
-              }
-            }
-          }
+          isHeroInViewRef.current = entry.isIntersecting;
         });
       },
       { threshold: 0.1 },
     );
-
-    if (heroSectionRef.current) {
-      heroObserver.observe(heroSectionRef.current);
-    }
+    if (heroSectionRef.current) heroObserver.observe(heroSectionRef.current);
 
     const feedbackObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
+          const video = feedbackVideoRef.current;
           if (entry.isIntersecting) {
             isFeedbackInViewRef.current = true;
-            playAndUnmuteFeedback();
-            const player = heroPlayerRef.current;
-            if (player) {
-              try {
-                player.pauseVideo();
-              } catch {
-                /* ignore */
-              }
-            }
+            if (video && video.paused) video.play().catch(() => {});
           } else {
             isFeedbackInViewRef.current = false;
-            pauseFeedback();
+            if (video && !video.paused) video.pause();
           }
         });
       },
       { threshold: 0.2 },
     );
-
-    if (readerFeedbackSectionRef.current) {
+    if (readerFeedbackSectionRef.current)
       feedbackObserver.observe(readerFeedbackSectionRef.current);
-    }
 
     return () => {
       heroObserver.disconnect();
       feedbackObserver.disconnect();
     };
-  }, [playAndUnmuteFeedback, pauseFeedback]);
+  }, []);
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText("ScriptDoctortamil@gmail.com");
@@ -570,10 +526,10 @@ export default function Home() {
       >
         {/* MOBILE VIEW SPECIFIC ORDER (Shows 1. Video -> 2. Price Button -> 3. Reduced Size Content) */}
         <div className="flex lg:hidden flex-col items-center gap-5">
-          {/* 1. YOUTUBE MASTERCLASS VIDEO FIRST ON MOBILE */}
+          {/* 1. HERO VIDEO FIRST ON MOBILE */}
           <div className="w-full">
             {(!isMounted || !isDesktopLayout) && (
-              <HeroVideoPlayer onPlayerReady={handleHeroPlayerReady} />
+              <HeroVideoPlayer />
             )}
           </div>
 
@@ -899,10 +855,10 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right Hero Column: Full Height YouTube Masterclass Video Card (P9T3a2-Onjc) */}
-          <div className="col-span-5 h-full w-full flex flex-col">
+          {/* Right Hero Column: Full Height MP4 Hero Video Card */}
+          <div className="col-span-5 flex flex-col" style={{ minHeight: "420px" }}>
             {isMounted && isDesktopLayout && (
-              <HeroVideoPlayer onPlayerReady={handleHeroPlayerReady} />
+              <HeroVideoPlayer />
             )}
           </div>
         </div>
@@ -1012,17 +968,8 @@ export default function Home() {
                 <span>💬</span> Reader Feedback &amp; Video Review
               </h3>
 
-              {/* YouTube Video Frame (16:9 Aspect Widescreen) */}
-              <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-xl bg-black my-2">
-                <iframe
-                  ref={videoIframeRef3}
-                  src="https://www.youtube.com/embed/RazScz2oK5E?enablejsapi=1&autoplay=0&mute=0&playsinline=1&loop=1&playlist=RazScz2oK5E&rel=0&controls=1"
-                  title="Script Doctor Tamil Reader Feedback Video Review"
-                  className="w-full h-full border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
-              </div>
+              {/* Native HTML5 Feedback Video (HD, muted autoplay + first-tap unmute) */}
+              <FeedbackVideoPlayer />
             </div>
 
             <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3">
