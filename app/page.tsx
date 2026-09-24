@@ -77,15 +77,23 @@ function OfferCountdownTimer({ compact = false }: { compact?: boolean }) {
   );
 }
 
+function getYouTubeId(url: string) {
+  const match = url.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/,
+  );
+  return match ? match[1] : "";
+}
+
 // ── Reusable Reel Video Player ───────────────────────────────────────────
 // Autoplays muted on load & scroll into view (browser-safe).
+// Supports YouTube embeds and native HTML5 video with a unified interface.
 // Features a large pulsing Center Play / Tap for Sound button.
 // Tap anywhere on the video or button → immediately plays with 100% full volume.
 // Shows a sleek top-left corner toggle for easy muting/unmuting anytime.
 // IntersectionObserver pauses when offscreen, resumes when back on screen.
 interface ReelVideoPlayerProps {
-  src: string;
-  instagramUrl: string;
+  src?: string;
+  youtubeUrl: string;
   title: string;
   className?: string;
   containerHeightClass?: string;
@@ -93,17 +101,20 @@ interface ReelVideoPlayerProps {
 
 function ReelVideoPlayer({
   src,
-  instagramUrl,
+  youtubeUrl,
   title,
   className = "",
-  containerHeightClass = "aspect-[9/16]",
+  containerHeightClass = "aspect-video",
 }: ReelVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [soundOn, setSoundOn] = useState(false);
   const soundOnRef = useRef(false);
 
-  // Muted autoplay on load
+  const videoId = getYouTubeId(youtubeUrl);
+
+  // Muted autoplay on load for HTML5 video
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -116,13 +127,28 @@ function ReelVideoPlayer({
   const handleEnableSound = useCallback(
     (e?: React.MouseEvent | React.TouchEvent) => {
       if (e) e.stopPropagation();
-      const video = videoRef.current;
-      if (!video) return;
-      video.muted = false;
-      video.volume = 1;
-      if (video.paused) video.play().catch(() => {});
       setSoundOn(true);
       soundOnRef.current = true;
+      if (iframeRef.current?.contentWindow) {
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: "command", func: "unMute" }),
+          "*",
+        );
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: "command", func: "setVolume", args: [100] }),
+          "*",
+        );
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: "command", func: "playVideo" }),
+          "*",
+        );
+      }
+      const video = videoRef.current;
+      if (video) {
+        video.muted = false;
+        video.volume = 1;
+        if (video.paused) video.play().catch(() => {});
+      }
     },
     [],
   );
@@ -130,30 +156,61 @@ function ReelVideoPlayer({
   // Corner mute / unmute toggle
   const toggleMute = useCallback((e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    const video = videoRef.current;
-    if (!video) return;
-    const nextMuted = !video.muted;
-    video.muted = nextMuted;
-    video.volume = nextMuted ? 0 : 1;
+    const nextMuted = soundOnRef.current;
     setSoundOn(!nextMuted);
     soundOnRef.current = !nextMuted;
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({
+          event: "command",
+          func: nextMuted ? "mute" : "unMute",
+        }),
+        "*",
+      );
+    }
+    const video = videoRef.current;
+    if (video) {
+      video.muted = nextMuted;
+      video.volume = nextMuted ? 0 : 1;
+    }
   }, []);
 
   // Scroll observer: auto-pause when scrolled away, auto-resume when in view
   useEffect(() => {
-    const video = videoRef.current;
     const container = containerRef.current;
-    if (!video || !container) return;
+    if (!container) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            video.muted = !soundOnRef.current;
-            video.volume = soundOnRef.current ? 1 : 0;
-            if (video.paused) video.play().catch(() => {});
+            if (iframeRef.current?.contentWindow) {
+              iframeRef.current.contentWindow.postMessage(
+                JSON.stringify({ event: "command", func: "playVideo" }),
+                "*",
+              );
+              if (soundOnRef.current) {
+                iframeRef.current.contentWindow.postMessage(
+                  JSON.stringify({ event: "command", func: "unMute" }),
+                  "*",
+                );
+              }
+            }
+            const video = videoRef.current;
+            if (video) {
+              video.muted = !soundOnRef.current;
+              video.volume = soundOnRef.current ? 1 : 0;
+              if (video.paused) video.play().catch(() => {});
+            }
           } else {
-            if (!video.paused) video.pause();
+            if (iframeRef.current?.contentWindow) {
+              iframeRef.current.contentWindow.postMessage(
+                JSON.stringify({ event: "command", func: "pauseVideo" }),
+                "*",
+              );
+            }
+            const video = videoRef.current;
+            if (video && !video.paused) video.pause();
           }
         });
       },
@@ -173,36 +230,47 @@ function ReelVideoPlayer({
         onTouchEnd={!soundOn ? handleEnableSound : undefined}
         className={`relative w-full ${containerHeightClass} rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-2xl bg-black group select-none cursor-pointer`}
       >
-        <video
-          ref={videoRef}
-          src={src}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          className="w-full h-full object-cover"
-          title={title}
-        />
+        {videoId ? (
+          <iframe
+            ref={iframeRef}
+            src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=1&playsinline=1&loop=1&playlist=${videoId}&rel=0&controls=1`}
+            title={title}
+            className="w-full h-full border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
+        ) : src ? (
+          <video
+            ref={videoRef}
+            src={src}
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            className="w-full h-full object-cover"
+            title={title}
+          />
+        ) : null}
 
         {/* Center Play & Turn Sound On Overlay (shown until sound is turned on) */}
         {!soundOn && (
           <div
-            className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[1px] transition-all p-2.5 sm:p-4"
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2.5 sm:gap-3.5 bg-black/40 backdrop-blur-[1px] transition-all p-3 sm:p-4 select-none cursor-pointer"
             role="button"
             aria-label="Click to play with sound"
             tabIndex={0}
           >
-            {/* Play Button - Exactly Dead Center on Mobile (< lg) */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 lg:static lg:transform-none flex items-center justify-center">
+            {/* Play Button - Centered */}
+            <div className="relative flex items-center justify-center">
               {/* Glowing animated ripple pulse rings */}
-              <div className="absolute w-16 h-16 sm:w-28 sm:h-28 rounded-full bg-amber-500/30 animate-ping pointer-events-none" />
-              <div className="absolute w-14 h-14 sm:w-24 sm:h-24 rounded-full bg-amber-400/40 animate-pulse pointer-events-none" />
+              <div className="absolute w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-amber-500/30 animate-ping pointer-events-none" />
+              <div className="absolute w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-amber-400/40 animate-pulse pointer-events-none" />
 
               {/* Big Center Play & Speaker Button */}
-              <div className="relative z-10 w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-amber-400 via-amber-500 to-yellow-500 flex items-center justify-center shadow-2xl shadow-amber-500/80 border-3 sm:border-4 border-white/95 group-hover:scale-110 group-active:scale-95 transition-transform duration-200">
+              <div className="relative z-10 w-12 h-12 sm:w-18 sm:h-18 rounded-full bg-gradient-to-br from-amber-400 via-amber-500 to-yellow-500 flex items-center justify-center shadow-2xl shadow-amber-500/80 border-3 sm:border-4 border-white/95 group-hover:scale-110 group-active:scale-95 transition-transform duration-200">
                 <svg
-                  className="w-7 h-7 sm:w-10 sm:h-10 text-slate-950 ml-0.5 drop-shadow"
+                  className="w-6 h-6 sm:w-9 sm:h-9 text-slate-950 ml-0.5 drop-shadow"
                   viewBox="0 0 24 24"
                   fill="currentColor"
                 >
@@ -211,11 +279,11 @@ function ReelVideoPlayer({
               </div>
             </div>
 
-            {/* Bilingual Sound Alert Badge - Pinned to bottom on mobile, static on desktop */}
-            <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 lg:static lg:transform-none lg:mt-4 flex flex-col items-center gap-0.5 sm:gap-1 text-center bg-black/85 px-3 sm:px-4 py-1 sm:py-2 rounded-xl sm:rounded-2xl border border-amber-400/50 shadow-2xl backdrop-blur-md pointer-events-none max-w-[92%] whitespace-nowrap">
-              <span className="text-amber-300 font-black text-[11px] sm:text-sm tracking-wide flex items-center gap-1 sm:gap-1.5">
+            {/* Bilingual Sound Alert Badge - Dead Center Directly Below Play Button */}
+            <div className="flex flex-col items-center gap-0.5 sm:gap-1 text-center bg-black/85 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl border border-amber-400/50 shadow-2xl backdrop-blur-md pointer-events-none max-w-[92%]">
+              <span className="text-amber-300 font-black text-[11px] sm:text-xs tracking-wide flex items-center justify-center gap-1 sm:gap-1.5 text-center">
                 <svg
-                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-bounce text-amber-400"
+                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-bounce text-amber-400 flex-shrink-0"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
@@ -223,7 +291,7 @@ function ReelVideoPlayer({
                 </svg>
                 <span>ஒலி கேட்க கிளிக் செய்யவும்</span>
               </span>
-              <span className="text-white font-bold text-[10px] sm:text-xs">
+              <span className="text-white font-bold text-[10px] sm:text-xs text-center">
                 Click / Tap for Sound 🔊
               </span>
             </div>
@@ -255,19 +323,19 @@ function ReelVideoPlayer({
         )}
       </div>
 
-      {/* External Instagram attribution link */}
+      {/* External YouTube attribution link */}
       <div className="mt-2.5 flex items-center justify-between text-xs px-1">
         <span className="text-slate-500 font-semibold flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-pink-500" />
-          <span>Instagram Reel</span>
+          <span className="w-2 h-2 rounded-full bg-red-600" />
+          <span>YouTube Video</span>
         </span>
         <a
-          href={instagramUrl}
+          href={youtubeUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="text-amber-700 hover:text-amber-800 font-bold hover:underline inline-flex items-center gap-1"
         >
-          <span>Watch on Instagram</span>
+          <span>Watch on YouTube</span>
           <svg
             className="w-3 h-3"
             fill="none"
@@ -290,15 +358,15 @@ function ReelVideoPlayer({
 // Hero Instagram Reel Component
 function HeroInstagramReel() {
   return (
-    <div className="relative w-full max-w-full sm:max-w-[420px] lg:max-w-[365px] xl:max-w-[395px] mx-auto group flex flex-col">
+    <div className="relative w-full max-w-full sm:max-w-[420px] lg:max-w-none mx-auto group flex flex-col h-full">
       <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-rose-400 to-amber-500 rounded-3xl blur-xl opacity-40 group-hover:opacity-70 transition duration-700 animate-pulse-glow" />
 
-      <div className="relative rounded-3xl p-2.5 sm:p-4 border shadow-2xl overflow-hidden bg-white border-amber-300 shadow-amber-500/20 flex flex-col">
+      <div className="relative rounded-3xl p-2.5 sm:p-4 lg:p-5 border shadow-2xl overflow-hidden bg-white border-amber-300 shadow-amber-500/20 flex flex-col h-full justify-between">
         <ReelVideoPlayer
-          src="/videos/hero-reel.mp4"
-          instagramUrl="https://www.instagram.com/reel/Ddq4U_nh6pk/?stkn=ZWxneWlxZW5teGkz"
+          youtubeUrl="https://www.youtube.com/watch?v=GcnwuGwukzU"
           title="Script Doctor Tamil Masterclass Video"
-          containerHeightClass="h-[260px] sm:h-[340px] lg:h-auto lg:aspect-[9/16]"
+          className="h-full flex flex-col justify-between"
+          containerHeightClass="aspect-video lg:aspect-auto lg:flex-1 lg:min-h-[480px] xl:min-h-[540px] lg:h-full"
         />
       </div>
     </div>
@@ -309,9 +377,9 @@ function HeroInstagramReel() {
 function FeedbackInstagramReel() {
   return (
     <ReelVideoPlayer
-      src="/videos/feedback-reel.mp4"
-      instagramUrl="https://www.instagram.com/reel/DdlcglAhB5S/?utm_source=ig_web_copy_link&stkn=MzRlODBiNWFlZA=="
+      youtubeUrl="https://www.youtube.com/watch?v=RazScz2oK5E"
       title="Script Doctor Tamil Reader Feedback Video Review"
+      containerHeightClass="aspect-video"
     />
   );
 }
@@ -708,7 +776,7 @@ export default function Home() {
         </div>
 
         {/* DESKTOP VIEW LAYOUT (PROPORTIONAL 2-COLUMN SIDE BY SIDE WITH FULL HEIGHT VIDEO) */}
-        <div className="hidden lg:grid grid-cols-12 gap-8 xl:gap-12 items-center">
+        <div className="hidden lg:grid grid-cols-12 gap-8 xl:gap-12 items-stretch">
           {/* Left Hero Text Column */}
           <div className="col-span-7 flex flex-col justify-center gap-5 xl:gap-6">
             <div className="w-full flex flex-col items-start gap-4 xl:gap-5">
@@ -902,8 +970,8 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right Hero Column: Proportional Instagram Reel Card */}
-          <div className="col-span-5 w-full flex flex-col justify-center items-center">
+          {/* Right Hero Column: Full Height Card with Centered Video */}
+          <div className="col-span-5 h-full w-full flex flex-col justify-center">
             {isMounted && isDesktopLayout && (
               <HeroInstagramReel />
             )}
@@ -1007,8 +1075,8 @@ export default function Home() {
         </div>
 
         {/* SINGLE READER FEEDBACK VIDEO CARD */}
-        <div className="w-full max-w-md mx-auto">
-          <div className="rounded-3xl p-4 sm:p-6 border shadow-2xl flex flex-col justify-between transition-colors glass-card-gold-light border-amber-300 bg-white">
+        <div className="w-full max-w-md lg:max-w-4xl xl:max-w-5xl mx-auto">
+          <div className="rounded-3xl p-4 sm:p-6 lg:p-7 border shadow-2xl flex flex-col justify-between transition-colors glass-card-gold-light border-amber-300 bg-white">
             <div className="flex items-center justify-between mb-3 px-1">
               <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                 <span>💬</span> Reader Feedback &amp; Video Review
