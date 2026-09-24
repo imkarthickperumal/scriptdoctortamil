@@ -77,160 +77,238 @@ function OfferCountdownTimer({ compact = false }: { compact?: boolean }) {
   );
 }
 
-// Hero Video Player using official YouTube IFrame Player API
-interface HeroVideoPlayerProps {
-  onPlayerReady: (player: any) => void;
-  onFirstInteraction?: () => void;
+// ── Reusable Reel Video Player ───────────────────────────────────────────
+// Autoplays muted on load & scroll into view (browser-safe).
+// Features a large pulsing Center Play / Tap for Sound button.
+// Tap anywhere on the video or button → immediately plays with 100% full volume.
+// Shows a sleek top-left corner toggle for easy muting/unmuting anytime.
+// IntersectionObserver pauses when offscreen, resumes when back on screen.
+interface ReelVideoPlayerProps {
+  src: string;
+  instagramUrl: string;
+  title: string;
+  className?: string;
 }
 
-function HeroVideoPlayer({
-  onPlayerReady,
-  onFirstInteraction,
-}: HeroVideoPlayerProps) {
+function ReelVideoPlayer({
+  src,
+  instagramUrl,
+  title,
+  className = "",
+}: ReelVideoPlayerProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const playerInstanceRef = useRef<any>(null);
-  const onPlayerReadyRef = useRef(onPlayerReady);
-  onPlayerReadyRef.current = onPlayerReady;
-  const [hasInteracted, setHasInteracted] = useState(false);
-  const shouldUnmuteRef = useRef(false);
+  const [soundOn, setSoundOn] = useState(false);
+  const soundOnRef = useRef(false);
 
-  const handleUnmuteTap = () => {
-    setHasInteracted(true);
-    shouldUnmuteRef.current = true;
-    const player = playerInstanceRef.current;
-    if (player) {
-      try {
-        player.unMute();
-        player.setVolume(100);
-        player.playVideo();
-      } catch {
-        /* ignore */
-      }
-    }
-    if (onFirstInteraction) onFirstInteraction();
-  };
-
+  // Muted autoplay on load
   useEffect(() => {
-    let destroyed = false;
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = true;
+    video.volume = 1;
+    video.play().catch(() => {});
+  }, []);
 
-    const createPlayer = () => {
-      if (destroyed || !containerRef.current || playerInstanceRef.current)
-        return;
+  // Center button / tap anywhere to turn on sound
+  const handleEnableSound = useCallback(
+    (e?: React.MouseEvent | React.TouchEvent) => {
+      if (e) e.stopPropagation();
+      const video = videoRef.current;
+      if (!video) return;
+      video.muted = false;
+      video.volume = 1;
+      if (video.paused) video.play().catch(() => {});
+      setSoundOn(true);
+      soundOnRef.current = true;
+    },
+    [],
+  );
 
-      playerInstanceRef.current = new (window as any).YT.Player(
-        containerRef.current,
-        {
-          videoId: "P9T3a2-Onjc",
-          width: "100%",
-          height: "100%",
-          playerVars: {
-            autoplay: 1,
-            mute: 1,
-            playsinline: 1,
-            loop: 1,
-            playlist: "P9T3a2-Onjc",
-            rel: 0,
-            controls: 1,
-          },
-          events: {
-            onReady: (event: any) => {
-              if (!destroyed) {
-                try {
-                  if (shouldUnmuteRef.current) {
-                    event.target.unMute();
-                    event.target.setVolume(100);
-                  }
-                  event.target.playVideo();
-                } catch {
-                  /* ignore */
-                }
-                onPlayerReadyRef.current(event.target);
-              }
-            },
-          },
-        },
-      );
-    };
+  // Corner mute / unmute toggle
+  const toggleMute = useCallback((e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const video = videoRef.current;
+    if (!video) return;
+    const nextMuted = !video.muted;
+    video.muted = nextMuted;
+    video.volume = nextMuted ? 0 : 1;
+    setSoundOn(!nextMuted);
+    soundOnRef.current = !nextMuted;
+  }, []);
 
-    if ((window as any).YT?.Player) {
-      createPlayer();
-    } else {
-      const prevCb = (window as any).onYouTubeIframeAPIReady;
-      (window as any).onYouTubeIframeAPIReady = () => {
-        if (typeof prevCb === "function") prevCb();
-        createPlayer();
-      };
-    }
+  // Scroll observer: auto-pause when scrolled away, auto-resume when in view
+  useEffect(() => {
+    const video = videoRef.current;
+    const container = containerRef.current;
+    if (!video || !container) return;
 
-    return () => {
-      destroyed = true;
-      if (playerInstanceRef.current?.destroy) {
-        try {
-          playerInstanceRef.current.destroy();
-        } catch {
-          /* ignore */
-        }
-        playerInstanceRef.current = null;
-      }
-    };
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            video.muted = !soundOnRef.current;
+            video.volume = soundOnRef.current ? 1 : 0;
+            if (video.paused) video.play().catch(() => {});
+          } else {
+            if (!video.paused) video.pause();
+          }
+        });
+      },
+      { threshold: 0.25 },
+    );
+
+    observer.observe(container);
+    return () => observer.disconnect();
   }, []);
 
   return (
-    <div className="relative w-full max-w-md lg:max-w-none mx-auto group flex flex-col h-full">
-      <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-rose-400 to-amber-500 rounded-3xl blur-xl opacity-40 group-hover:opacity-70 transition duration-700 animate-pulse-glow" />
+    <div className={`relative w-full ${className}`}>
+      {/* Video Container */}
+      <div
+        ref={containerRef}
+        onClick={!soundOn ? handleEnableSound : undefined}
+        onTouchEnd={!soundOn ? handleEnableSound : undefined}
+        className="relative w-full aspect-[9/16] rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-2xl bg-black group select-none cursor-pointer"
+      >
+        <video
+          ref={videoRef}
+          src={src}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="w-full h-full object-cover"
+          title={title}
+        />
 
-      <div className="relative rounded-3xl p-3 sm:p-4 xl:p-5 border shadow-2xl overflow-hidden bg-white border-amber-300 shadow-amber-500/20 flex flex-col h-full justify-between">
-        <div className="relative aspect-video lg:aspect-auto lg:flex-1 lg:h-full min-h-[220px] sm:min-h-[260px] w-full rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-2xl bg-black [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:border-0">
-          <div ref={containerRef} className="w-full h-full" />
+        {/* Center Play & Turn Sound On Overlay (shown until sound is turned on) */}
+        {!soundOn && (
+          <div
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[1px] transition-all p-4"
+            role="button"
+            aria-label="Click to play with sound"
+            tabIndex={0}
+          >
+            <div className="relative flex items-center justify-center">
+              {/* Glowing animated ripple pulse rings */}
+              <div className="absolute w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-amber-500/30 animate-ping pointer-events-none" />
+              <div className="absolute w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-amber-400/40 animate-pulse pointer-events-none" />
 
-          {/* Center Play & Turn Sound On Overlay */}
-          {!hasInteracted && (
-            <div
-              onClick={handleUnmuteTap}
-              onTouchEnd={handleUnmuteTap}
-              className="absolute inset-0 z-20 flex flex-col items-center justify-center cursor-pointer bg-black/50 backdrop-blur-[2px] transition-all group/playbtn select-none p-4"
-              role="button"
-              aria-label="Click to play video with sound"
-              tabIndex={0}
-            >
-              <div className="relative flex items-center justify-center">
-                {/* Glowing animated ripple pulse rings */}
-                <div className="absolute w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-amber-500/30 animate-ping pointer-events-none" />
-                <div className="absolute w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-amber-400/40 animate-pulse pointer-events-none" />
-
-                {/* Big Center Play Button */}
-                <div className="relative z-10 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-amber-400 via-amber-500 to-yellow-500 flex items-center justify-center shadow-2xl shadow-amber-500/80 border-4 border-white/95 group-hover/playbtn:scale-110 group-active/playbtn:scale-95 transition-transform duration-200">
-                  <svg
-                    className="w-8 h-8 sm:w-10 sm:h-10 text-slate-950 ml-1 drop-shadow"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                </div>
-              </div>
-
-              {/* Bilingual Sound Alert Badge */}
-              <div className="mt-4 flex flex-col items-center gap-1 text-center bg-black/80 px-4 py-2.5 rounded-2xl border border-amber-400/40 shadow-2xl backdrop-blur-md pointer-events-none">
-                <span className="text-amber-300 font-black text-xs sm:text-sm tracking-wide flex items-center gap-1.5">
-                  <svg
-                    className="w-4 h-4 animate-bounce text-amber-400"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
-                  </svg>
-                  <span>ஒலி கேட்க கிளிக் செய்யவும்</span>
-                </span>
-                <span className="text-white font-bold text-[11px] sm:text-xs">
-                  Click / Tap for Sound 🔊
-                </span>
+              {/* Big Center Play & Speaker Button */}
+              <div className="relative z-10 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-amber-400 via-amber-500 to-yellow-500 flex items-center justify-center shadow-2xl shadow-amber-500/80 border-4 border-white/95 group-hover:scale-110 group-active:scale-95 transition-transform duration-200">
+                <svg
+                  className="w-8 h-8 sm:w-10 sm:h-10 text-slate-950 ml-0.5 drop-shadow"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M8 5v14l11-7z" />
+                </svg>
               </div>
             </div>
-          )}
-        </div>
+
+            {/* Bilingual Sound Alert Badge */}
+            <div className="mt-4 flex flex-col items-center gap-1 text-center bg-black/85 px-4 py-2 rounded-2xl border border-amber-400/50 shadow-2xl backdrop-blur-md pointer-events-none">
+              <span className="text-amber-300 font-black text-xs sm:text-sm tracking-wide flex items-center gap-1.5">
+                <svg
+                  className="w-4 h-4 animate-bounce text-amber-400"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                </svg>
+                <span>ஒலி கேட்க கிளிக் செய்யவும்</span>
+              </span>
+              <span className="text-white font-bold text-[11px] sm:text-xs">
+                Click / Tap for Sound 🔊
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Corner Mute / Unmute Toggle (shown after sound is turned on) */}
+        {soundOn && (
+          <button
+            type="button"
+            onClick={toggleMute}
+            className="absolute top-3 left-3 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black border shadow-lg transition-all duration-200 cursor-pointer active:scale-95 bg-amber-500 text-slate-950 border-amber-400 hover:bg-amber-400 backdrop-blur-sm"
+          >
+            <svg
+              className="w-3.5 h-3.5 flex-shrink-0"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            </svg>
+            <span>🔊 Sound ON</span>
+          </button>
+        )}
+      </div>
+
+      {/* External Instagram attribution link */}
+      <div className="mt-2.5 flex items-center justify-between text-xs px-1">
+        <span className="text-slate-500 font-semibold flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-pink-500" />
+          <span>Instagram Reel</span>
+        </span>
+        <a
+          href={instagramUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-amber-700 hover:text-amber-800 font-bold hover:underline inline-flex items-center gap-1"
+        >
+          <span>Watch on Instagram</span>
+          <svg
+            className="w-3 h-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+            />
+          </svg>
+        </a>
       </div>
     </div>
+  );
+}
+
+// Hero Instagram Reel Component
+function HeroInstagramReel() {
+  return (
+    <div className="relative w-full max-w-[380px] lg:max-w-[365px] xl:max-w-[395px] mx-auto group flex flex-col">
+      <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-rose-400 to-amber-500 rounded-3xl blur-xl opacity-40 group-hover:opacity-70 transition duration-700 animate-pulse-glow" />
+
+      <div className="relative rounded-3xl p-3 sm:p-4 border shadow-2xl overflow-hidden bg-white border-amber-300 shadow-amber-500/20 flex flex-col">
+        <ReelVideoPlayer
+          src="/videos/hero-reel.mp4"
+          instagramUrl="https://www.instagram.com/reel/DdeAlB2BJ0b/?utm_source=ig_web_copy_link&stkn=MzRlODBiNWFlZA=="
+          title="Script Doctor Tamil Masterclass Video"
+        />
+      </div>
+    </div>
+  );
+}
+
+// Reader Feedback Reel Component
+function FeedbackInstagramReel() {
+  return (
+    <ReelVideoPlayer
+      src="/videos/feedback-reel.mp4"
+      instagramUrl="https://www.instagram.com/reel/DdlcglAhB5S/?utm_source=ig_web_copy_link&stkn=MzRlODBiNWFlZA=="
+      title="Script Doctor Tamil Reader Feedback Video Review"
+    />
   );
 }
 
@@ -289,170 +367,29 @@ export default function Home() {
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  // YouTube Player API refs
-  const heroPlayerRef = useRef<any>(null); // YT.Player instance
-  const videoIframeRef3 = useRef<HTMLIFrameElement>(null); // Reader Feedback Video (RazScz2oK5E)
-
-  const heroSectionRef = useRef<HTMLDivElement>(null);
-  const readerFeedbackSectionRef = useRef<HTMLDivElement>(null);
-
   // Responsive layout state
   const [isDesktopLayout, setIsDesktopLayout] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
-  // Track active visibility state across observer callbacks
-  const isHeroInViewRef = useRef(true);
-  const isFeedbackInViewRef = useRef(false);
-
-  // Load YouTube IFrame Player API script & detect responsive layout
+  // Load Instagram embed script & detect responsive layout
   useEffect(() => {
     setIsMounted(true);
     const checkIsDesktop = () => setIsDesktopLayout(window.innerWidth >= 1024);
     checkIsDesktop();
     window.addEventListener("resize", checkIsDesktop);
 
-    // Load YouTube IFrame API script (only once)
-    if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+    // Load Instagram embed script
+    if (!document.querySelector('script[src*="instagram.com/embed.js"]')) {
       const tag = document.createElement("script");
-      tag.src = "https://www.youtube.com/iframe_api";
-      document.head.appendChild(tag);
+      tag.src = "https://www.instagram.com/embed.js";
+      tag.async = true;
+      document.body.appendChild(tag);
+    } else if ((window as any).instgrm?.Embeds?.process) {
+      (window as any).instgrm.Embeds.process();
     }
 
     return () => window.removeEventListener("resize", checkIsDesktop);
   }, []);
-
-  // Callback when YT.Player fires onReady — store reference and start playback
-  const handleHeroPlayerReady = useCallback((player: any) => {
-    heroPlayerRef.current = player;
-    try {
-      player.playVideo();
-      if (typeof window !== "undefined" && window.innerWidth >= 1024) {
-        player.unMute();
-        player.setVolume(100);
-      }
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  // Helper to send postMessage commands to Reader Feedback Video iframe
-  const postToFeedback = useCallback((func: string, args: any = []) => {
-    const msg = JSON.stringify({ event: "command", func, args });
-    videoIframeRef3.current?.contentWindow?.postMessage(msg, "*");
-  }, []);
-
-  const playAndUnmuteFeedback = useCallback(() => {
-    postToFeedback("playVideo", []);
-    postToFeedback("unMute", []);
-    postToFeedback("setVolume", [100]);
-  }, [postToFeedback]);
-
-  const pauseFeedback = useCallback(() => {
-    postToFeedback("pauseVideo", []);
-  }, [postToFeedback]);
-
-  // User gesture detection: ensure sound and playback are active on touch/click/scroll for both videos
-  useEffect(() => {
-    const handleGesture = () => {
-      const player = heroPlayerRef.current;
-      if (player && isHeroInViewRef.current) {
-        try {
-          player.unMute();
-          player.setVolume(100);
-          player.playVideo();
-        } catch {
-          /* ignore */
-        }
-      }
-      postToFeedback("unMute", []);
-      postToFeedback("setVolume", [100]);
-    };
-
-    window.addEventListener("touchstart", handleGesture, { passive: true });
-    window.addEventListener("touchend", handleGesture, { passive: true });
-    window.addEventListener("pointerdown", handleGesture);
-    window.addEventListener("pointerup", handleGesture);
-    window.addEventListener("click", handleGesture);
-    window.addEventListener("scroll", handleGesture, { passive: true });
-
-    return () => {
-      window.removeEventListener("touchstart", handleGesture);
-      window.removeEventListener("touchend", handleGesture);
-      window.removeEventListener("pointerdown", handleGesture);
-      window.removeEventListener("pointerup", handleGesture);
-      window.removeEventListener("click", handleGesture);
-      window.removeEventListener("scroll", handleGesture);
-    };
-  }, [postToFeedback]);
-
-  // IntersectionObserver: pause/play hero & feedback videos based on scroll position
-  useEffect(() => {
-    const heroObserver = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const player = heroPlayerRef.current;
-          if (entry.isIntersecting) {
-            isHeroInViewRef.current = true;
-            if (player) {
-              try {
-                player.playVideo();
-                player.unMute();
-                player.setVolume(100);
-              } catch {
-                /* ignore */
-              }
-            }
-          } else {
-            isHeroInViewRef.current = false;
-            if (player) {
-              try {
-                player.pauseVideo();
-              } catch {
-                /* ignore */
-              }
-            }
-          }
-        });
-      },
-      { threshold: 0.1 },
-    );
-
-    if (heroSectionRef.current) {
-      heroObserver.observe(heroSectionRef.current);
-    }
-
-    const feedbackObserver = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            isFeedbackInViewRef.current = true;
-            playAndUnmuteFeedback();
-            const player = heroPlayerRef.current;
-            if (player) {
-              try {
-                player.pauseVideo();
-              } catch {
-                /* ignore */
-              }
-            }
-          } else {
-            isFeedbackInViewRef.current = false;
-            pauseFeedback();
-          }
-        });
-      },
-      { threshold: 0.2 },
-    );
-
-    if (readerFeedbackSectionRef.current) {
-      feedbackObserver.observe(readerFeedbackSectionRef.current);
-    }
-
-    return () => {
-      heroObserver.disconnect();
-      feedbackObserver.disconnect();
-    };
-  }, [playAndUnmuteFeedback, pauseFeedback]);
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText("ScriptDoctortamil@gmail.com");
@@ -607,15 +544,14 @@ export default function Home() {
       {/* HERO SECTION - DESKTOP & MOBILE OPTIMIZED ORDER */}
       <section
         id="overview"
-        ref={heroSectionRef}
         className="relative pt-6 sm:pt-10 pb-12 sm:pb-16 px-4 sm:px-6 max-w-6xl mx-auto z-10"
       >
         {/* MOBILE VIEW SPECIFIC ORDER (Shows 1. Video -> 2. Price Button -> 3. Reduced Size Content) */}
         <div className="flex lg:hidden flex-col items-center gap-5">
-          {/* 1. YOUTUBE MASTERCLASS VIDEO FIRST ON MOBILE */}
+          {/* 1. INSTAGRAM REEL FIRST ON MOBILE */}
           <div className="w-full">
             {(!isMounted || !isDesktopLayout) && (
-              <HeroVideoPlayer onPlayerReady={handleHeroPlayerReady} />
+              <HeroInstagramReel />
             )}
           </div>
 
@@ -768,11 +704,11 @@ export default function Home() {
         </div>
 
         {/* DESKTOP VIEW LAYOUT (PROPORTIONAL 2-COLUMN SIDE BY SIDE WITH FULL HEIGHT VIDEO) */}
-        <div className="hidden lg:grid grid-cols-12 gap-8 xl:gap-12 items-stretch">
+        <div className="hidden lg:grid grid-cols-12 gap-8 xl:gap-12 items-center">
           {/* Left Hero Text Column */}
-          <div className="col-span-7 flex flex-col justify-between gap-5 xl:gap-6">
-            <div className="w-full flex flex-col items-start gap-4">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-sm font-semibold tracking-wide backdrop-blur-md bg-amber-100 border-amber-300 text-amber-900 shadow-sm">
+          <div className="col-span-7 flex flex-col justify-center gap-5 xl:gap-6">
+            <div className="w-full flex flex-col items-start gap-4 xl:gap-5">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-semibold tracking-wide backdrop-blur-md bg-amber-100 border-amber-300 text-amber-900 shadow-sm">
                 <span className="text-base">🎬</span>
                 <span>
                   SCENE 01 | TAKE 01 • Instant Digital Download (3.07 MB PDF)
@@ -780,40 +716,45 @@ export default function Home() {
               </div>
 
               <div>
-                <h1 className="text-4xl xl:text-5xl font-black tracking-tight leading-[1.15] text-slate-900">
+                <h1 className="text-4xl lg:text-[2.75rem] xl:text-[3.25rem] font-black tracking-tight leading-[1.12] text-slate-900">
                   Kill the Cat <br />
                   <span className="text-amber-600">
                     E-Book (Tamil &amp; English)
                   </span>
                 </h1>
-                <p className="mt-2 xl:mt-3 text-base xl:text-lg font-bold text-amber-800">
+                <p className="mt-2.5 xl:mt-3 text-base xl:text-lg font-bold text-amber-800">
                   &ldquo;குடும்பங்கள் கொண்டாடும் Gen Z திரைக்கதை&rdquo;
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 px-4 py-2 rounded-2xl border bg-amber-50/90 border-amber-200 text-slate-700 shadow-sm">
-                <div className="relative w-8 h-8 rounded-full overflow-hidden border border-amber-500/50 flex-shrink-0">
-                  <Image
-                    src="/images/logo.jpeg"
-                    alt="Script Doctor Tamil"
-                    fill
-                    className="object-cover"
-                  />
+              <div className="w-full flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-2xl border bg-amber-50/90 border-amber-200 text-slate-700 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-amber-500/60 flex-shrink-0">
+                    <Image
+                      src="/images/logo.jpeg"
+                      alt="Script Doctor Tamil"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-slate-900 leading-tight">
+                      Created by <strong className="text-amber-700">Script Doctor Tamil</strong>
+                    </span>
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      Director &amp; Screenwriter • Blacksheep Media
+                    </span>
+                  </div>
                 </div>
-                <span className="text-sm font-medium">
-                  Created by{" "}
-                  <strong className="text-amber-600 font-bold">
-                    Script Doctor Tamil
-                  </strong>
-                </span>
-                <span className="bg-emerald-500/20 text-emerald-700 text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-md border border-emerald-500/30">
-                  Verified Director &amp; Screenwriter
-                </span>
+                <div className="flex items-center gap-1.5 bg-amber-100 border border-amber-300/80 px-2.5 py-1 rounded-full text-xs font-black text-amber-900 shadow-xs">
+                  <span>⭐ 4.9/5</span>
+                  <span className="text-amber-700/80 font-semibold">• 500+ Readers</span>
+                </div>
               </div>
 
               {/* Dual Language Switcher Box */}
-              <div className="w-full rounded-2xl p-4 xl:p-5 border shadow-xl bg-white/95 border-amber-200/90 shadow-amber-500/10 transition-colors">
-                <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-200">
+              <div className="w-full rounded-2xl p-4 xl:p-5 border shadow-xl bg-white/95 border-amber-200/90 shadow-amber-500/10 transition-colors space-y-3">
+                <div className="flex items-center justify-between pb-2.5 border-b border-slate-200">
                   <span className="text-xs uppercase font-extrabold tracking-wider flex items-center gap-1.5 text-slate-600">
                     <svg
                       className="w-4 h-4 text-amber-600"
@@ -880,10 +821,26 @@ export default function Home() {
                     scripts &amp; viral Reels.
                   </p>
                 )}
+
+                {/* 3 Quick Value Highlights */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2.5 border-t border-slate-100">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-amber-50/80 px-2.5 py-1.5 rounded-lg border border-amber-200/60">
+                    <span>🎬</span>
+                    <span>Cinema Screenplay</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-amber-50/80 px-2.5 py-1.5 rounded-lg border border-amber-200/60">
+                    <span>📱</span>
+                    <span>Short Film &amp; Reels</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-amber-50/80 px-2.5 py-1.5 rounded-lg border border-amber-200/60">
+                    <span>⚡</span>
+                    <span>15-Beats Framework</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="w-full flex flex-col gap-4">
+            <div className="w-full flex flex-col gap-3.5">
               {/* Desktop Price & Buy Action Bar */}
               <PriceActionBar />
 
@@ -903,7 +860,7 @@ export default function Home() {
                       d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                     />
                   </svg>
-                  100% Secure Payment
+                  100% Secure Checkout
                 </span>
                 <span className="flex items-center gap-1.5">
                   <svg
@@ -919,7 +876,7 @@ export default function Home() {
                       d="M13 10V3L4 14h7v7l9-11h-7z"
                     />
                   </svg>
-                  Instant Download Access
+                  Instant PDF Download
                 </span>
                 <span className="flex items-center gap-1.5">
                   <svg
@@ -935,16 +892,16 @@ export default function Home() {
                       d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
                     />
                   </svg>
-                  Mobile &amp; Tablet Ready
+                  Mobile, Tablet &amp; Print Ready
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Right Hero Column: Full Height YouTube Masterclass Video Card (P9T3a2-Onjc) */}
-          <div className="col-span-5 h-full w-full flex flex-col">
+          {/* Right Hero Column: Proportional Instagram Reel Card */}
+          <div className="col-span-5 w-full flex flex-col justify-center items-center">
             {isMounted && isDesktopLayout && (
-              <HeroVideoPlayer onPlayerReady={handleHeroPlayerReady} />
+              <HeroInstagramReel />
             )}
           </div>
         </div>
@@ -1029,7 +986,6 @@ export default function Home() {
       {/* READER FEEDBACK VIDEO SECTION */}
       <section
         id="reader-feedback"
-        ref={readerFeedbackSectionRef}
         className="py-16 px-4 sm:px-6 max-w-6xl mx-auto border-t border-slate-200 relative z-10 space-y-8"
       >
         <div className="text-center max-w-2xl mx-auto">
@@ -1046,44 +1002,41 @@ export default function Home() {
           </p>
         </div>
 
-        {/* SINGLE READER FEEDBACK VIDEO CARD (RazScz2oK5E) */}
-        <div className="w-full max-w-3xl lg:max-w-none mx-auto">
-          <div className="rounded-3xl p-5 sm:p-7 border shadow-xl flex flex-col justify-between transition-colors glass-card-gold-light border-amber-300 bg-white">
-            <div>
-              <h3 className="text-base sm:text-lg font-bold mb-2.5 text-slate-900 flex items-center gap-2">
+        {/* SINGLE READER FEEDBACK VIDEO CARD */}
+        <div className="w-full max-w-md mx-auto">
+          <div className="rounded-3xl p-4 sm:p-6 border shadow-2xl flex flex-col justify-between transition-colors glass-card-gold-light border-amber-300 bg-white">
+            <div className="flex items-center justify-between mb-3 px-1">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                 <span>💬</span> Reader Feedback &amp; Video Review
               </h3>
-
-              {/* YouTube Video Frame (16:9 Aspect Widescreen) */}
-              <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-xl bg-black my-2">
-                <iframe
-                  ref={videoIframeRef3}
-                  src="https://www.youtube.com/embed/RazScz2oK5E?enablejsapi=1&autoplay=0&mute=0&playsinline=1&loop=1&playlist=RazScz2oK5E&rel=0&controls=1"
-                  title="Script Doctor Tamil Reader Feedback Video Review"
-                  className="w-full h-full border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
-              </div>
+              <span className="text-amber-500 text-xs font-black tracking-wide">
+                ⭐⭐⭐⭐⭐
+              </span>
             </div>
 
-            <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3">
-              <span className="text-xs text-slate-500 font-medium order-2 sm:order-1">
-                Verified Reader Experience
-              </span>
-              <div className="flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3 w-full sm:w-auto order-1 sm:order-2">
-                {/* 5-MIN COUNTDOWN TIMER BEFORE EBOOK BUTTON */}
-                <OfferCountdownTimer />
+            {/* Instagram Feedback Reel with Autoplay and Tap for Sound */}
+            <FeedbackInstagramReel />
 
-                {/* E-BOOK PAYMENT BUTTON */}
+            {/* Card Footer: Verified Badge & Action Bar */}
+            <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-col items-center gap-3">
+              <div className="flex items-center justify-between w-full text-xs text-slate-600 font-semibold px-1">
+                <span className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                  <span>✓</span> Verified Reader Review
+                </span>
+                <span className="text-slate-400 font-medium">Gen Z Screenplay Guide</span>
+              </div>
+
+              {/* Price & Buy Action Bar */}
+              <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                <OfferCountdownTimer compact />
                 <a
                   href={PAYMENT_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black px-5 py-2.5 rounded-full text-xs shadow-md shadow-amber-500/25 transition-all transform hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap"
+                  className="flex-1 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black px-4 py-2.5 rounded-xl text-xs sm:text-sm shadow-md shadow-amber-500/25 transition-all transform hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5"
                 >
                   <span>Get E-Book • ₹333</span>
-                  <span className="line-through text-slate-800/60 text-xs font-semibold">
+                  <span className="line-through text-slate-800/60 text-[10px] font-semibold">
                     ₹500
                   </span>
                   <svg
