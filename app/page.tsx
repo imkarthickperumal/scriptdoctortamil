@@ -88,6 +88,7 @@ interface ReelVideoPlayerProps {
   instagramUrl: string;
   title: string;
   className?: string;
+  containerHeightClass?: string;
 }
 
 function ReelVideoPlayer({
@@ -95,6 +96,7 @@ function ReelVideoPlayer({
   instagramUrl,
   title,
   className = "",
+  containerHeightClass = "aspect-[9/16]",
 }: ReelVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -169,7 +171,7 @@ function ReelVideoPlayer({
         ref={containerRef}
         onClick={!soundOn ? handleEnableSound : undefined}
         onTouchEnd={!soundOn ? handleEnableSound : undefined}
-        className="relative w-full aspect-[9/16] rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-2xl bg-black group select-none cursor-pointer"
+        className={`relative w-full ${containerHeightClass} rounded-2xl overflow-hidden border-2 border-amber-500/60 shadow-2xl bg-black group select-none cursor-pointer`}
       >
         <video
           ref={videoRef}
@@ -186,20 +188,20 @@ function ReelVideoPlayer({
         {/* Center Play & Turn Sound On Overlay (shown until sound is turned on) */}
         {!soundOn && (
           <div
-            className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[1px] transition-all p-4"
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[1px] transition-all p-2.5 sm:p-4"
             role="button"
             aria-label="Click to play with sound"
             tabIndex={0}
           >
             <div className="relative flex items-center justify-center">
               {/* Glowing animated ripple pulse rings */}
-              <div className="absolute w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-amber-500/30 animate-ping pointer-events-none" />
-              <div className="absolute w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-amber-400/40 animate-pulse pointer-events-none" />
+              <div className="absolute w-16 h-16 sm:w-28 sm:h-28 rounded-full bg-amber-500/30 animate-ping pointer-events-none" />
+              <div className="absolute w-14 h-14 sm:w-24 sm:h-24 rounded-full bg-amber-400/40 animate-pulse pointer-events-none" />
 
               {/* Big Center Play & Speaker Button */}
-              <div className="relative z-10 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-amber-400 via-amber-500 to-yellow-500 flex items-center justify-center shadow-2xl shadow-amber-500/80 border-4 border-white/95 group-hover:scale-110 group-active:scale-95 transition-transform duration-200">
+              <div className="relative z-10 w-12 h-12 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-amber-400 via-amber-500 to-yellow-500 flex items-center justify-center shadow-2xl shadow-amber-500/80 border-2 sm:border-4 border-white/95 group-hover:scale-110 group-active:scale-95 transition-transform duration-200">
                 <svg
-                  className="w-8 h-8 sm:w-10 sm:h-10 text-slate-950 ml-0.5 drop-shadow"
+                  className="w-6 h-6 sm:w-10 sm:h-10 text-slate-950 ml-0.5 drop-shadow"
                   viewBox="0 0 24 24"
                   fill="currentColor"
                 >
@@ -209,10 +211,10 @@ function ReelVideoPlayer({
             </div>
 
             {/* Bilingual Sound Alert Badge */}
-            <div className="mt-4 flex flex-col items-center gap-1 text-center bg-black/85 px-4 py-2 rounded-2xl border border-amber-400/50 shadow-2xl backdrop-blur-md pointer-events-none">
-              <span className="text-amber-300 font-black text-xs sm:text-sm tracking-wide flex items-center gap-1.5">
+            <div className="mt-2.5 sm:mt-4 flex flex-col items-center gap-0.5 sm:gap-1 text-center bg-black/85 px-3 sm:px-4 py-1 sm:py-2 rounded-xl sm:rounded-2xl border border-amber-400/50 shadow-2xl backdrop-blur-md pointer-events-none">
+              <span className="text-amber-300 font-black text-[11px] sm:text-sm tracking-wide flex items-center gap-1 sm:gap-1.5">
                 <svg
-                  className="w-4 h-4 animate-bounce text-amber-400"
+                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-bounce text-amber-400"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
@@ -220,7 +222,7 @@ function ReelVideoPlayer({
                 </svg>
                 <span>ஒலி கேட்க கிளிக் செய்யவும்</span>
               </span>
-              <span className="text-white font-bold text-[11px] sm:text-xs">
+              <span className="text-white font-bold text-[10px] sm:text-xs">
                 Click / Tap for Sound 🔊
               </span>
             </div>
@@ -232,7 +234,7 @@ function ReelVideoPlayer({
           <button
             type="button"
             onClick={toggleMute}
-            className="absolute top-3 left-3 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black border shadow-lg transition-all duration-200 cursor-pointer active:scale-95 bg-amber-500 text-slate-950 border-amber-400 hover:bg-amber-400 backdrop-blur-sm"
+            className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 z-30 flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-black border shadow-lg transition-all duration-200 cursor-pointer active:scale-95 bg-amber-500 text-slate-950 border-amber-400 hover:bg-amber-400 backdrop-blur-sm"
           >
             <svg
               className="w-3.5 h-3.5 flex-shrink-0"
@@ -287,14 +289,15 @@ function ReelVideoPlayer({
 // Hero Instagram Reel Component
 function HeroInstagramReel() {
   return (
-    <div className="relative w-full max-w-[380px] lg:max-w-[365px] xl:max-w-[395px] mx-auto group flex flex-col">
+    <div className="relative w-full max-w-[290px] sm:max-w-[340px] lg:max-w-[365px] xl:max-w-[395px] mx-auto group flex flex-col">
       <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-rose-400 to-amber-500 rounded-3xl blur-xl opacity-40 group-hover:opacity-70 transition duration-700 animate-pulse-glow" />
 
-      <div className="relative rounded-3xl p-3 sm:p-4 border shadow-2xl overflow-hidden bg-white border-amber-300 shadow-amber-500/20 flex flex-col">
+      <div className="relative rounded-3xl p-2.5 sm:p-4 border shadow-2xl overflow-hidden bg-white border-amber-300 shadow-amber-500/20 flex flex-col">
         <ReelVideoPlayer
           src="/videos/hero-reel.mp4"
-          instagramUrl="https://www.instagram.com/reel/DdeAlB2BJ0b/?utm_source=ig_web_copy_link&stkn=MzRlODBiNWFlZA=="
+          instagramUrl="https://www.instagram.com/reel/Ddq4U_nh6pk/?stkn=ZWxneWlxZW5teGkz"
           title="Script Doctor Tamil Masterclass Video"
+          containerHeightClass="h-[260px] sm:h-[340px] lg:h-auto lg:aspect-[9/16]"
         />
       </div>
     </div>
