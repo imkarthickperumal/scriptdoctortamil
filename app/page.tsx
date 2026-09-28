@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
+import { trackInitiateCheckout } from "@/lib/pixel";
 
 const PAYMENT_URL =
   "https://superprofile.bio/vp/kill-the-cat--tamil---english-?checkout=true";
@@ -387,35 +388,21 @@ function FeedbackInstagramReel() {
 // Reusable Price & Buy Action Bar Component
 function PriceActionBar() {
   return (
-    <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 pt-1">
-      {/* Compact Urgency Timer & Cost Box */}
-      <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-2.5 px-3 py-2 rounded-xl border bg-amber-50/90 border-amber-200 shadow-sm flex-shrink-0">
-        {/* 5-Min Urgency Timer */}
+    <div className="w-full flex flex-row items-center gap-2 sm:gap-2.5 pt-1">
+      {/* Compact Urgency Timer */}
+      <div className="flex items-center justify-center px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-xl border bg-amber-50/90 border-amber-200 shadow-sm flex-shrink-0">
         <OfferCountdownTimer compact />
-        <div className="flex items-baseline gap-1 sm:gap-1.5">
-          <span className="text-xl sm:text-2xl font-black text-amber-600">
-            ₹333
-          </span>
-          <span className="line-through text-[11px] sm:text-xs text-slate-400 font-bold">
-            ₹500
-          </span>
-          <span className="bg-rose-500/20 text-rose-700 text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded border border-rose-500/30 whitespace-nowrap">
-            SAVE ₹167
-          </span>
-        </div>
       </div>
 
-      {/* Compact Get E-Book CTA Button on Same Line in Webview */}
+      {/* Compact Get your Copy CTA Button on Same Line in Mobile View */}
       <a
         href={PAYMENT_URL}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={trackInitiateCheckout}
         className="flex-1 min-w-0 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs sm:text-sm px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl shadow-lg shadow-amber-500/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer whitespace-nowrap"
       >
-        <span>Get E-Book • ₹333</span>
-        <span className="line-through text-slate-800/60 text-[10px] sm:text-xs font-semibold">
-          ₹500
-        </span>
+        <span>Get your Copy</span>
         <svg
           className="w-4 h-4 flex-shrink-0"
           fill="none"
@@ -436,6 +423,7 @@ function PriceActionBar() {
 
 export default function Home() {
   const [language, setLanguage] = useState<"tamil" | "english">("tamil");
+  const [authorSlide, setAuthorSlide] = useState<0 | 1>(0);
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
@@ -470,7 +458,7 @@ export default function Home() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden font-sans bg-[#fffdfa] text-slate-900 transition-colors duration-500">
+    <div className="relative min-h-screen overflow-x-clip font-sans bg-[#fffdfa] text-slate-900 transition-colors duration-500">
       {/* ANNOUNCEMENT TOP BAR */}
       <div className="bg-gradient-to-r from-amber-600 via-rose-600 to-amber-600 text-white text-xs font-bold py-1.5 sm:py-2 shadow-md relative z-50">
         <div className="max-w-6xl mx-auto px-2.5 sm:px-6 w-full flex flex-col sm:flex-row items-center justify-between gap-1.5 sm:gap-3 text-center sm:text-left">
@@ -478,6 +466,7 @@ export default function Home() {
             href={PAYMENT_URL}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={trackInitiateCheckout}
             className="bg-black/40 hover:bg-black/60 text-amber-300 hover:text-white px-3 py-1 rounded-full text-[10px] sm:text-xs uppercase tracking-wider font-extrabold transition-all border border-amber-400/30 inline-flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-105 active:scale-95 whitespace-nowrap flex-shrink-0"
           >
             <span>🎬</span>
@@ -491,12 +480,10 @@ export default function Home() {
             href={PAYMENT_URL}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={trackInitiateCheckout}
             className="hidden sm:inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs px-3.5 py-1 rounded-full shadow transition-all cursor-pointer whitespace-nowrap flex-shrink-0"
           >
-            <span>Get E-Book • ₹333</span>
-            <span className="line-through text-slate-800/60 text-[11px] font-semibold">
-              ₹500
-            </span>
+            <span>Get your Copy</span>
             <svg
               className="w-3.5 h-3.5 flex-shrink-0"
               fill="none"
@@ -589,12 +576,10 @@ export default function Home() {
               href={PAYMENT_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 sm:gap-2.5 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black px-2.5 sm:px-5 py-1.5 sm:py-2.5 rounded-full text-xs sm:text-sm shadow-lg shadow-amber-500/25 transition-all transform hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap flex-shrink-0"
+              onClick={trackInitiateCheckout}
+              className="flex items-center gap-1 sm:gap-2.5 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black px-3.5 sm:px-5 py-1.5 sm:py-2.5 rounded-full text-xs sm:text-sm shadow-lg shadow-amber-500/25 transition-all transform hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap flex-shrink-0"
             >
-              <span>Get E-Book • ₹333</span>
-              <span className="line-through text-slate-800/60 text-[10px] sm:text-xs font-semibold hidden min-[380px]:inline">
-                ₹500
-              </span>
+              <span>Get your Copy</span>
               <svg
                 className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0"
                 fill="none"
@@ -979,6 +964,80 @@ export default function Home() {
         </div>
       </section>
 
+      {/* READER FEEDBACK VIDEO SECTION */}
+      <section
+        id="reader-feedback"
+        className="py-16 px-4 sm:px-6 max-w-6xl mx-auto border-t border-slate-200 relative z-10 space-y-8"
+      >
+        <div className="text-center max-w-2xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-rose-500/10 text-rose-600 border border-rose-500/30 text-xs font-bold uppercase tracking-wider mb-2">
+            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+            Verified Reader Reviews
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900">
+            Reader Feedback
+          </h2>
+          <p className="text-sm sm:text-base mt-2 text-slate-600">
+            Watch real feedback and video reviews from readers who experienced
+            &ldquo;Kill the Cat / Gen Z திரைக்கதை&rdquo;.
+          </p>
+        </div>
+
+        {/* SINGLE READER FEEDBACK VIDEO CARD */}
+        <div className="w-full max-w-md lg:max-w-4xl xl:max-w-5xl mx-auto">
+          <div className="rounded-3xl p-4 sm:p-6 lg:p-7 border shadow-2xl flex flex-col justify-between transition-colors glass-card-gold-light border-amber-300 bg-white">
+            <div className="flex items-center justify-between mb-3 px-1">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                <span>💬</span> Reader Feedback &amp; Video Review
+              </h3>
+              <span className="text-amber-500 text-xs font-black tracking-wide">
+                ⭐⭐⭐⭐⭐
+              </span>
+            </div>
+
+            {/* Instagram Feedback Reel with Autoplay and Tap for Sound */}
+            <FeedbackInstagramReel />
+
+            {/* Card Footer: Verified Badge & Action Bar */}
+            <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-col items-center gap-3">
+              <div className="flex items-center justify-between w-full text-xs text-slate-600 font-semibold px-1">
+                <span className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                  <span>✓</span> Verified Reader Review
+                </span>
+                <span className="text-slate-400 font-medium">Gen Z Screenplay Guide</span>
+              </div>
+
+              {/* Price & Buy Action Bar */}
+              <div className="w-full flex flex-row items-center justify-between gap-2.5">
+                <OfferCountdownTimer compact />
+                <a
+                  href={PAYMENT_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={trackInitiateCheckout}
+                  className="flex-1 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black px-4 py-2.5 rounded-xl text-xs sm:text-sm shadow-md shadow-amber-500/25 transition-all transform hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5"
+                >
+                  <span>Get your Copy</span>
+                  <svg
+                    className="w-3.5 h-3.5 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M14 5l7 7m0 0l-7 7m7-7H3"
+                    />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* DEDICATED KOLLYWOOD SCREENPLAY MARQUEE SECTION */}
       <section
         id="banner-showcase"
@@ -1050,82 +1109,6 @@ export default function Home() {
               <span className="text-slate-500 font-mono">
                 100% Equal Height
               </span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* READER FEEDBACK VIDEO SECTION */}
-      <section
-        id="reader-feedback"
-        className="py-16 px-4 sm:px-6 max-w-6xl mx-auto border-t border-slate-200 relative z-10 space-y-8"
-      >
-        <div className="text-center max-w-2xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-rose-500/10 text-rose-600 border border-rose-500/30 text-xs font-bold uppercase tracking-wider mb-2">
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-            Verified Reader Reviews
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900">
-            Reader Feedback
-          </h2>
-          <p className="text-sm sm:text-base mt-2 text-slate-600">
-            Watch real feedback and video reviews from readers who experienced
-            &ldquo;Kill the Cat / Gen Z திரைக்கதை&rdquo;.
-          </p>
-        </div>
-
-        {/* SINGLE READER FEEDBACK VIDEO CARD */}
-        <div className="w-full max-w-md lg:max-w-4xl xl:max-w-5xl mx-auto">
-          <div className="rounded-3xl p-4 sm:p-6 lg:p-7 border shadow-2xl flex flex-col justify-between transition-colors glass-card-gold-light border-amber-300 bg-white">
-            <div className="flex items-center justify-between mb-3 px-1">
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-                <span>💬</span> Reader Feedback &amp; Video Review
-              </h3>
-              <span className="text-amber-500 text-xs font-black tracking-wide">
-                ⭐⭐⭐⭐⭐
-              </span>
-            </div>
-
-            {/* Instagram Feedback Reel with Autoplay and Tap for Sound */}
-            <FeedbackInstagramReel />
-
-            {/* Card Footer: Verified Badge & Action Bar */}
-            <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-col items-center gap-3">
-              <div className="flex items-center justify-between w-full text-xs text-slate-600 font-semibold px-1">
-                <span className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
-                  <span>✓</span> Verified Reader Review
-                </span>
-                <span className="text-slate-400 font-medium">Gen Z Screenplay Guide</span>
-              </div>
-
-              {/* Price & Buy Action Bar */}
-              <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-                <OfferCountdownTimer compact />
-                <a
-                  href={PAYMENT_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black px-4 py-2.5 rounded-xl text-xs sm:text-sm shadow-md shadow-amber-500/25 transition-all transform hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5"
-                >
-                  <span>Get E-Book • ₹333</span>
-                  <span className="line-through text-slate-800/60 text-[10px] font-semibold">
-                    ₹500
-                  </span>
-                  <svg
-                    className="w-3.5 h-3.5 flex-shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2.5}
-                      d="M14 5l7 7m0 0l-7 7m7-7H3"
-                    />
-                  </svg>
-                </a>
-              </div>
             </div>
           </div>
         </div>
@@ -1210,12 +1193,10 @@ export default function Home() {
                   href={PAYMENT_URL}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={trackInitiateCheckout}
                   className="bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-sm sm:text-base px-6 py-3.5 rounded-2xl shadow-xl shadow-amber-500/25 transition-all transform hover:scale-105 active:scale-95 cursor-pointer inline-flex items-center gap-2.5"
                 >
-                  <span>Get E-Book • ₹333</span>
-                  <span className="line-through text-slate-800/60 text-xs font-semibold">
-                    ₹500
-                  </span>
+                  <span>Get your Copy</span>
                   <svg
                     className="w-4 h-4 flex-shrink-0"
                     fill="none"
@@ -1424,10 +1405,342 @@ export default function Home() {
         </div>
       </section>
 
+      {/* AUTHOR & CREATOR SPOTLIGHT */}
+      <section
+        id="author"
+        className="py-16 px-4 sm:px-6 max-w-6xl mx-auto border-t border-slate-200"
+      >
+        <div className="rounded-3xl p-6 sm:p-10 lg:p-12 border relative overflow-hidden flex flex-col glass-card-light border-amber-200 bg-white shadow-lg">
+          {/* Top Logo & Official Creator Header */}
+          <div className="flex flex-col items-center text-center pb-6 mb-6 border-b border-amber-200/70">
+            {/* Top Logo */}
+            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 border-amber-500/60 shadow-xl shadow-amber-500/20 mb-3 bg-slate-900 flex-shrink-0">
+              <Image
+                src="/images/logo.jpeg"
+                alt="Script Doctor Tamil Logo"
+                fill
+                className="object-cover"
+              />
+            </div>
+
+            {/* Header pill & Language Switcher for Author */}
+            <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 text-amber-700 text-xs font-bold uppercase tracking-wider border border-amber-500/20">
+                Official Creator &amp; Author Rights Profile
+              </div>
+
+              {/* Tamil & English Switcher inside Author Section */}
+              <div className="flex p-1 rounded-lg border bg-slate-100 border-slate-200">
+                <button
+                  onClick={() => {
+                    setLanguage("tamil");
+                    setAuthorSlide(0);
+                  }}
+                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                    language === "tamil"
+                      ? "bg-amber-500 text-slate-950 shadow-md"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  தமிழ் (Tamil)
+                </button>
+                <button
+                  onClick={() => {
+                    setLanguage("english");
+                    setAuthorSlide(0);
+                  }}
+                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                    language === "english"
+                      ? "bg-amber-500 text-slate-950 shadow-md"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  English
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="w-full space-y-4">
+            <div>
+              <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+                Script Doctor Tamil
+              </h3>
+              <p className="text-xs sm:text-sm font-bold text-amber-700 uppercase tracking-wide mt-0.5">
+                Ja. Asarudeen (Asar J) • Director, Screenwriter &amp; Cinema
+                Educator
+              </p>
+
+              {/* Author Career Highlights */}
+              <div className="flex flex-wrap items-center gap-2 mt-3 text-[11px] sm:text-xs">
+                <span className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-semibold">
+                  🎬 40+ Works at Blacksheep
+                </span>
+                <span className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-semibold">
+                  🏢 LYCA &amp; Rowdy Pictures Discussion Teams
+                </span>
+                <span className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-semibold">
+                  🎥 Kottukkaali &amp; Maharaja Promo Director
+                </span>
+                <span className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-semibold">
+                  📖 Author of &ldquo;Nizhal Thirudan&rdquo; &amp; &ldquo;Kill
+                  the Cat&rdquo;
+                </span>
+              </div>
+            </div>
+
+            {/* Author Profile Document Slides Viewer (Replaces Text with First and Second Slide Images) */}
+            <div className="w-full flex flex-col items-center gap-4 pt-2">
+              {/* Slide Navigation Header Bar */}
+              <div className="w-full max-w-2xl flex items-center justify-between gap-2 p-1.5 rounded-2xl bg-amber-500/10 border border-amber-300">
+                <button
+                  type="button"
+                  onClick={() => setAuthorSlide(0)}
+                  className={`flex-1 py-2 sm:py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    authorSlide === 0
+                      ? "bg-amber-500 text-slate-950 shadow-md transform scale-[1.02]"
+                      : "text-slate-700 hover:text-slate-950 hover:bg-white/60"
+                  }`}
+                >
+                  <span>📄</span>
+                  <span>
+                    {language === "tamil"
+                      ? "பக்கம் 1 (Slide 1)"
+                      : "Page 1 (Slide 1)"}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAuthorSlide(1)}
+                  className={`flex-1 py-2 sm:py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    authorSlide === 1
+                      ? "bg-amber-500 text-slate-950 shadow-md transform scale-[1.02]"
+                      : "text-slate-700 hover:text-slate-950 hover:bg-white/60"
+                  }`}
+                >
+                  <span>📄</span>
+                  <span>
+                    {language === "tamil"
+                      ? "பக்கம் 2 (Slide 2)"
+                      : "Page 2 (Slide 2)"}
+                  </span>
+                </button>
+              </div>
+
+              {/* Document Slide Display Container with Quick Arrows & Click-to-Zoom */}
+              <div className="relative w-full max-w-2xl mx-auto">
+                <div
+                  onClick={() =>
+                    setPreviewImage(
+                      language === "tamil"
+                        ? authorSlide === 0
+                          ? "/images/Tamil_1.jpg"
+                          : "/images/Tamil_2.jpg"
+                        : authorSlide === 0
+                        ? "/images/English_1.jpg"
+                        : "/images/English_2.jpg"
+                    )
+                  }
+                  className="relative w-full aspect-[1241/1755] rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-3 border-amber-400/80 shadow-2xl bg-slate-950 cursor-pointer group"
+                >
+                  <Image
+                    src={
+                      language === "tamil"
+                        ? authorSlide === 0
+                          ? "/images/Tamil_1.jpg"
+                          : "/images/Tamil_2.jpg"
+                        : authorSlide === 0
+                        ? "/images/English_1.jpg"
+                        : "/images/English_2.jpg"
+                    }
+                    alt={
+                      language === "tamil"
+                        ? `Author Profile Tamil Page ${authorSlide + 1}`
+                        : `Author Profile English Page ${authorSlide + 1}`
+                    }
+                    fill
+                    className="object-contain transform group-hover:scale-[1.01] transition-transform duration-300"
+                    priority
+                  />
+
+                  {/* Hover overlay hint */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-all flex items-center justify-center pointer-events-none">
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-amber-500 text-slate-950 font-black text-xs px-4 py-2 rounded-full shadow-2xl flex items-center gap-1.5 transform group-hover:scale-105">
+                      🔍 Click to Inspect Full Resolution
+                    </span>
+                  </div>
+
+                  {/* Left / Right Quick Arrow Navigation Buttons */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAuthorSlide(0);
+                    }}
+                    disabled={authorSlide === 0}
+                    className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center bg-black/70 hover:bg-black text-white shadow-xl transition-all ${
+                      authorSlide === 0
+                        ? "opacity-30 cursor-not-allowed"
+                        : "cursor-pointer hover:scale-110 active:scale-95"
+                    }`}
+                    aria-label="Previous Slide"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.5}
+                        d="M15 19l-7-7 7-7"
+                      />
+                    </svg>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAuthorSlide(1);
+                    }}
+                    disabled={authorSlide === 1}
+                    className={`absolute right-2.5 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center bg-black/70 hover:bg-black text-white shadow-xl transition-all ${
+                      authorSlide === 1
+                        ? "opacity-30 cursor-not-allowed"
+                        : "cursor-pointer hover:scale-110 active:scale-95"
+                    }`}
+                    aria-label="Next Slide"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.5}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Bottom Carousel Pagination Dots & Page Indicator */}
+                <div className="flex items-center justify-between text-xs font-bold text-slate-600 px-2 pt-3">
+                  <span className="text-amber-800">
+                    {language === "tamil"
+                      ? "அதிகாரப்பூர்வ சுயவிவரம்"
+                      : "Official Creator Profile"}{" "}
+                    • Slide {authorSlide + 1} of 2
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAuthorSlide(0)}
+                      className={`w-3 h-3 rounded-full transition-all cursor-pointer ${
+                        authorSlide === 0
+                          ? "bg-amber-500 scale-125"
+                          : "bg-slate-300 hover:bg-slate-400"
+                      }`}
+                      aria-label="Slide 1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setAuthorSlide(1)}
+                      className={`w-3 h-3 rounded-full transition-all cursor-pointer ${
+                        authorSlide === 1
+                          ? "bg-amber-500 scale-125"
+                          : "bg-slate-300 hover:bg-slate-400"
+                      }`}
+                      aria-label="Slide 2"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Social links & Email Contact Button */}
+            <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-3">
+              {/* Instagram link */}
+              <a
+                href="https://www.instagram.com/scriptdoctor.tamil/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl text-white bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-90 shadow-md transition-all transform hover:scale-105"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                </svg>
+                <span>Instagram</span>
+              </a>
+
+              {/* YouTube link */}
+              <a
+                href="https://www.youtube.com/@scriptdoctortamil"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl text-white bg-red-600 hover:bg-red-700 shadow-md transition-all transform hover:scale-105"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                </svg>
+                <span>YouTube</span>
+              </a>
+
+              <a
+                href="mailto:ScriptDoctortamil@gmail.com"
+                className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-xl border bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300 transition-colors"
+              >
+                <svg
+                  className="w-4 h-4 text-amber-700"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+                ScriptDoctortamil@gmail.com
+              </a>
+
+              <button
+                onClick={handleCopyEmail}
+                className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-xl border bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-amber-800 border-slate-300 transition-colors cursor-pointer"
+              >
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 002-2v-6a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  />
+                </svg>
+                {copiedEmail ? "Copied!" : "Copy Email"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CHECKOUT SECTION */}
       <section
         id="checkout-section"
-        className="py-20 px-4 sm:px-6 max-w-6xl mx-auto scroll-mt-20"
+        className="py-20 px-4 sm:px-6 max-w-6xl mx-auto scroll-mt-20 border-t border-slate-200"
       >
         <div className="rounded-3xl p-6 sm:p-10 lg:p-12 border shadow-2xl relative overflow-hidden transition-colors glass-card-gold-light border-amber-400 bg-white">
           <div className="text-center max-w-2xl mx-auto mb-10">
@@ -1438,8 +1751,8 @@ export default function Home() {
               Get Your Copy Now
             </h2>
             <p className="text-slate-600 text-sm mt-2">
-              Click the button below to complete the secure payment of ₹333 and
-              download your E-Book instantly.
+              Click the button below to complete your order and download your
+              E-Book instantly.
             </p>
           </div>
 
@@ -1509,35 +1822,32 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Right Column: Pricing Breakdown & Payment Button */}
+              {/* Right Column: Feature Highlights & Payment Button */}
               <div className="md:col-span-6 flex flex-col gap-4 md:border-l md:border-amber-200 md:pl-8">
-                <div className="space-y-2 text-sm text-slate-700">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Original Price</span>
-                    <span className="line-through text-slate-400 font-semibold">
-                      ₹500.00
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700">
+                    <span className="text-emerald-600 font-black text-base leading-none">✓</span>
+                    <span className="font-semibold text-slate-800">
+                      Instant Access: Download link opens immediately upon checkout
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Special Offer Price</span>
-                    <span className="text-slate-900 font-bold">₹333.00</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Delivery Format</span>
-                    <span className="text-emerald-600 font-bold">
-                      Instant Digital Access
+                  <div className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700">
+                    <span className="text-emerald-600 font-black text-base leading-none">✓</span>
+                    <span className="font-semibold text-slate-800">
+                      Complete 15-Beats Screenplay Structure &amp; Gen Z Story Frameworks
                     </span>
                   </div>
-                  <div className="flex justify-between font-bold text-base pt-2.5 border-t border-amber-200 text-slate-900">
-                    <span>Total Amount</span>
-                    <div className="text-right">
-                      <span className="text-amber-600 text-2xl font-black block leading-none">
-                        ₹333.00
-                      </span>
-                      <span className="text-[10px] text-emerald-600 font-extrabold uppercase">
-                        Save ₹167 Today
-                      </span>
-                    </div>
+                  <div className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700">
+                    <span className="text-emerald-600 font-black text-base leading-none">✓</span>
+                    <span className="font-semibold text-slate-800">
+                      Lifetime Access • Read on Mobile, Tablet, iPad &amp; Laptop
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700">
+                    <span className="text-emerald-600 font-black text-base leading-none">✓</span>
+                    <span className="font-semibold text-slate-800">
+                      Bilingual Edition in Clear Tamil &amp; English
+                    </span>
                   </div>
                 </div>
 
@@ -1546,13 +1856,11 @@ export default function Home() {
                   href={PAYMENT_URL}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={trackInitiateCheckout}
                   className="w-full bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-base sm:text-lg py-4 px-6 rounded-2xl shadow-xl shadow-amber-500/30 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 cursor-pointer"
                 >
                   <span className="flex items-center gap-2.5 sm:gap-3">
-                    <span>Get E-Book • ₹333</span>
-                    <span className="line-through text-slate-800/60 text-xs sm:text-sm font-semibold">
-                      ₹500
-                    </span>
+                    <span>Get your Copy</span>
                     <svg
                       className="w-5 h-5 flex-shrink-0"
                       fill="none"
@@ -1599,366 +1907,6 @@ export default function Home() {
                 </svg>
                 <span>256-Bit SSL Encryption • 100% Verified</span>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* AUTHOR & CREATOR SPOTLIGHT */}
-      <section
-        id="author"
-        className="py-16 px-4 sm:px-6 max-w-6xl mx-auto border-t border-slate-200"
-      >
-        <div className="rounded-3xl p-6 sm:p-10 lg:p-12 border relative overflow-hidden flex flex-col glass-card-light border-amber-200 bg-white shadow-lg">
-          {/* Top Logo & Official Creator Header */}
-          <div className="flex flex-col items-center text-center pb-6 mb-6 border-b border-amber-200/70">
-            {/* Top Logo */}
-            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 border-amber-500/60 shadow-xl shadow-amber-500/20 mb-3 bg-slate-900 flex-shrink-0">
-              <Image
-                src="/images/logo.jpeg"
-                alt="Script Doctor Tamil Logo"
-                fill
-                className="object-cover"
-              />
-            </div>
-
-            {/* Header pill & Language Switcher for Author */}
-            <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 text-amber-700 text-xs font-bold uppercase tracking-wider border border-amber-500/20">
-                Official Creator &amp; Author Rights Profile
-              </div>
-
-              {/* Tamil & English Switcher inside Author Section */}
-              <div className="flex p-1 rounded-lg border bg-slate-100 border-slate-200">
-                <button
-                  onClick={() => setLanguage("tamil")}
-                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                    language === "tamil"
-                      ? "bg-amber-500 text-slate-950 shadow-md"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  தமிழ் (Tamil)
-                </button>
-                <button
-                  onClick={() => setLanguage("english")}
-                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                    language === "english"
-                      ? "bg-amber-500 text-slate-950 shadow-md"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  English
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="w-full space-y-4">
-            <div>
-              <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-                Script Doctor Tamil
-              </h3>
-              <p className="text-xs sm:text-sm font-bold text-amber-700 uppercase tracking-wide mt-0.5">
-                Ja. Asarudeen (Asar J) • Director, Screenwriter &amp; Cinema
-                Educator
-              </p>
-
-              {/* Author Career Highlights */}
-              <div className="flex flex-wrap items-center gap-2 mt-3 text-[11px] sm:text-xs">
-                <span className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-semibold">
-                  🎬 40+ Works at Blacksheep
-                </span>
-                <span className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-semibold">
-                  🏢 LYCA &amp; Rowdy Pictures Discussion Teams
-                </span>
-                <span className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-semibold">
-                  🎥 Kottukkaali &amp; Maharaja Promo Director
-                </span>
-                <span className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-semibold">
-                  📖 Author of &ldquo;Nizhal Thirudan&rdquo; &amp; &ldquo;Kill
-                  the Cat&rdquo;
-                </span>
-              </div>
-            </div>
-
-            {/* Bilingual Author Content */}
-            {language === "tamil" ? (
-              <div className="space-y-4 text-sm leading-relaxed text-slate-700 pt-2">
-                <p>
-                  வணக்கம், என்னுடைய பெயர் <strong>ஜா. அசாருதீன்</strong>.
-                  புதுக்கோட்டை மாவட்டத்தில் பிறந்தவன். சிறுவயதிலிருந்தே
-                  சினிமாவின் மீது கொண்ட காதலால், பள்ளிப் பருவத்திலேயே சினிமாதான்
-                  எனது பாதை என முடிவு செய்து, எனது இளங்கலை கல்வியை{" "}
-                  <strong>B.Sc. Visual Communication</strong> துறையில்
-                  தொடங்கினேன். இயக்குநர் ஆக வேண்டும் என்ற கனவில் அன்றிலிருந்தே
-                  கல்லூரி நண்பர்களுடன் சிறு சிறு குறும்படங்கள் எடுக்கத்
-                  தொடங்கினேன்.
-                </p>
-
-                <p>
-                  பின்பு முதுகலை கல்வியாக{" "}
-                  <strong>M.Sc. Media and Communication</strong> முடித்து, என்
-                  சினிமா கனவைத் தொடர சென்னையில் உள்ள <strong>Blacksheep</strong>{" "}
-                  எனப்படும் ஊடக நிறுவனத்தில் இயக்குநராக வேலைக்குச் சேர்ந்தேன்.
-                  எனக்கு இந்த வாய்ப்புக் கிடைக்க நான் கல்லூரி காலங்களில் எடுத்த
-                  குறும்படங்கள் உதவியது. பின்பு Blacksheep நிறுவனத்தில், சிறிய
-                  YouTube வீடியோவில் தொடங்கி, குறும்படங்கள், Web series என{" "}
-                  <strong>40-க்கும் மேற்பட்ட படைப்புகளை</strong> எழுதி -
-                  இயக்கினேன்.
-                </p>
-
-                <p>
-                  பின் நான் சினிமாவில் இயக்குநராக முயற்சி செய்து முழு
-                  படத்திற்கான சில திரைக்கதைகளும் எழுதி, அதில் ஒரு நல்ல கதையைப்
-                  புத்தகமாகவும் வெளியிட்டேன். அந்தப் புத்தகத்தின் பெயர்{" "}
-                  <strong>“நிழல் திருடன்”</strong>. மேலும் திரைக்கதை எழுதும்
-                  காலகட்டத்தில் வருமானத்திற்காக சில திரைப்படங்களின் (
-                  <strong>கொட்டுக்காளி</strong>, <strong>மகாராஜா</strong>)
-                  Promotion வீடியோவையும் இயக்கும் வாய்ப்புக் கிடைத்தது.
-                </p>
-
-                <p>
-                  மேலும் என் எழுத்தின் மீது கொண்ட ஆர்வத்தில்,{" "}
-                  <strong>Script Doctor Tamil</strong> என்னும் Instagram
-                  பக்கத்தில் பல வீடியோக்களை திரைக்கதை மற்றும் சினிமாவைப் பற்றி
-                  உருவாக்கி, 10,000+ followers-களைக் கடந்து பல அறிமுக
-                  எழுத்தாளர்களுக்கும் பயிற்றுவித்தேன்.
-                </p>
-
-                <p>
-                  இதன் பலனாகத் தமிழில் மிக முக்கியமான இரண்டு சினிமா நிறுவனங்களான
-                  (<strong>LYCA PRODUCTIONS</strong>,{" "}
-                  <strong>ROWDY PICTURES</strong>) அவர்களின் தயாரிப்பில் தொடங்க
-                  இருக்கும் படங்களில் திரைக்கதை விவாதக் குழுவில் பணியாற்ற
-                  வாய்ப்புக் கிடைத்தது. இந்த மிகப்பெரிய வாய்ப்பை அணு அணுவாக
-                  ரசித்துக்கொண்டே, எனது இயக்குநர் கனவையும் நிறைவேற்ற நான் எழுதிய
-                  சில கதைகளைக் கொண்டு, பல சினிமா கம்பெனிகளின் கதவுகளையும்
-                  தட்டிக்கொண்டிருக்கிறேன். விரைவில் நல்ல செய்தியைச் சொல்கிறேன்…
-                </p>
-
-                {/* Core E-Book Philosophy Quote Box */}
-                <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/90 border border-amber-200/90 space-y-2 text-slate-800 my-3">
-                  <div className="text-xs font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
-                    <span>📖</span> இந்த புத்தகத்தை ஏன் எழுதினேன்? (Why This
-                    E-Book?)
-                  </div>
-                  <p className="text-xs sm:text-sm leading-relaxed text-slate-700">
-                    என் வாழ்வில் குறும்படம் முதல், YouTube வீடியோக்கள், YouTube
-                    web series, Insta reel script, நாவல் (“நிழல் திருடன்”
-                    புத்தகம்), தற்போது சினிமா திரைக்கதை என அனைத்து வடிவத்திலும்
-                    எழுதியவன் என்ற அனுபவத்தில் இந்த புத்தகத்தைத் தொடர்கிறேன்.
-                  </p>
-                  <p className="text-xs sm:text-sm leading-relaxed text-slate-700">
-                    வழக்கமாக ஒரு திரைக்கதை புத்தகம் என்றால் முதலில் நமக்கு
-                    நினைவிற்கு வருவது, “Save the Cat” (தமிழில் “திரைக்கதை
-                    என்னும் பூனை”). கல்லூரி நாளில் ஆசிரியர் சுஜாதா எழுதிய
-                    “திரைக்கதை எழுதுவது எப்படி” புத்தகமும் கிடைத்தது. இந்த
-                    புத்தகங்கள் சிறப்பானவைதான் எனினும், எனது கருத்துப்படி இந்த
-                    புத்தகங்களுக்கும் தமிழ் சினிமாவின் தற்போதைய Hit சினிமா
-                    Formula-விற்கும் கொஞ்சம் வேறுபாட்டை உணர்கிறேன். மேலும்
-                    தற்போதைய Gen Z இயக்குநர்களின் திரைக்கதை வடிவம் சற்று Update
-                    ஆகியுள்ளதையும் அறிகிறேன்.
-                  </p>
-                  <p className="text-xs sm:text-sm leading-relaxed font-semibold text-amber-900">
-                    எனவே தமிழ் திரைக்கதையின் தற்போதைய updated வடிவத்தைப் பற்றி
-                    எளிமையாக, எளிதில் புரியும்படி இன்றைய தலைமுறையின் நம்ம Gen Z
-                    டைரக்டர்களுக்குக் கற்றுக்கொடுப்பதே இந்த முயற்சி!
-                  </p>
-                </div>
-
-                {/* Official Sign-Off Block */}
-                <div className="pt-3 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                  <div>
-                    <div className="text-xs text-slate-500 font-medium">
-                      இப்படிக்கு,
-                    </div>
-                    <div className="text-base font-black text-slate-900">
-                      Asar J (ஜா. அசாருதீன்)
-                    </div>
-                    <div className="text-xs text-amber-700 font-bold">
-                      இயக்குனர் / எழுத்தாளர் (Director &amp; Writer)
-                    </div>
-                    <div className="text-[11px] text-slate-500">
-                      Head of Operations — Script Doctor Tamil
-                    </div>
-                  </div>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 text-xs font-bold">
-                    <span>✓</span> Official Verified Author
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4 text-sm leading-relaxed text-slate-700 pt-2">
-                <p>
-                  Hello, my name is <strong>Ja. Asarudeen (Asar J)</strong>. I
-                  was born in Pudukkottai district. Because of my passion for
-                  cinema from a very young age, I decided during my school days
-                  itself that cinema would be my life&apos;s path. I started my
-                  undergraduate education in{" "}
-                  <strong>B.Sc. Visual Communication</strong>. With the dream of
-                  becoming a film director, I started making independent short
-                  films with my college friends from those early days.
-                </p>
-
-                <p>
-                  Later, I completed my postgraduate education in{" "}
-                  <strong>M.Sc. Media and Communication</strong>. To pursue my
-                  cinematic dream, I joined the media company{" "}
-                  <strong>Blacksheep</strong> in Chennai as a director. The
-                  short films I made during college helped me earn this
-                  opportunity. At Blacksheep, starting from viral YouTube videos
-                  to narrative short films and web series, I wrote and directed{" "}
-                  <strong>over 40 creative works</strong>.
-                </p>
-
-                <p>
-                  Transitioning into feature filmmaking, I wrote several
-                  full-length screenplays and published my story as a book
-                  titled <strong>“Nizhal Thirudan”</strong>. Alongside
-                  screenplay writing, I directed promotional video campaigns for
-                  acclaimed films including <strong>“Kottukkaali”</strong> and{" "}
-                  <strong>“Maharaja”</strong>.
-                </p>
-
-                <p>
-                  Driven by a passion for sharing the craft, I founded{" "}
-                  <strong>Script Doctor Tamil</strong> on Instagram, creating
-                  educational videos on screenwriting that crossed 10,000+
-                  followers and mentored numerous aspiring writers.
-                </p>
-
-                <p>
-                  As a key milestone, I was invited to collaborate as part of
-                  the screenplay discussion teams for upcoming feature film
-                  productions under two of Tamil cinema&apos;s most prestigious
-                  banners: <strong>LYCA PRODUCTIONS</strong> and{" "}
-                  <strong>ROWDY PICTURES</strong>. Cherishing this invaluable
-                  journey, I continue to pursue my directorial projects with
-                  multiple original stories. Exciting news coming soon…
-                </p>
-
-                {/* Core E-Book Philosophy Quote Box */}
-                <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/90 border border-amber-200/90 space-y-2 text-slate-800 my-3">
-                  <div className="text-xs font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
-                    <span>📖</span> The Philosophy Behind &ldquo;Kill the
-                    Cat&rdquo; E-Book
-                  </div>
-                  <p className="text-xs sm:text-sm leading-relaxed text-slate-700">
-                    From short films to YouTube videos, web series, Instagram
-                    reel scripts, a novel (&ldquo;Nizhal Thirudan&rdquo;), and
-                    mainstream cinema screenplays — I have written across all
-                    contemporary formats. With that real-world experience, I
-                    authored this book.
-                  </p>
-                  <p className="text-xs sm:text-sm leading-relaxed text-slate-700">
-                    Usually, when thinking of screenwriting books, classic
-                    titles like Blake Snyder&apos;s{" "}
-                    <em>&ldquo;Save the Cat&rdquo;</em> (translated to Tamil as{" "}
-                    <em>&ldquo;Thiraikathai Ennum Poonai&rdquo;</em>) or
-                    Sujatha&apos;s{" "}
-                    <em>&ldquo;Thiraikathai Ezhuthuvathu Eppadi&rdquo;</em> come
-                    to mind. While these classics are iconic, today&apos;s Tamil
-                    cinema hit formula and Gen Z directorial aesthetics have
-                    dramatically evolved.
-                  </p>
-                  <p className="text-xs sm:text-sm leading-relaxed font-semibold text-amber-900">
-                    This book is a direct, simplified, and practical guide
-                    designed to teach the modern, updated architecture of Tamil
-                    screenwriting to our new-generation Gen Z filmmakers!
-                  </p>
-                </div>
-
-                {/* Official Sign-Off Block */}
-                <div className="pt-3 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                  <div>
-                    <div className="text-xs text-slate-500 font-medium">
-                      Yours sincerely,
-                    </div>
-                    <div className="text-base font-black text-slate-900">
-                      Asar J (Ja. Asarudeen)
-                    </div>
-                    <div className="text-xs text-amber-700 font-bold">
-                      Director &amp; Screenwriter
-                    </div>
-                    <div className="text-[11px] text-slate-500">
-                      Head of Operations — Script Doctor Tamil
-                    </div>
-                  </div>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 text-xs font-bold">
-                    <span>✓</span> Official Copyright Owner
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Social links & Email Contact Button */}
-            <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-3">
-              {/* Instagram link */}
-              <a
-                href="https://www.instagram.com/scriptdoctor.tamil/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl text-white bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-90 shadow-md transition-all transform hover:scale-105"
-              >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                </svg>
-                <span>Instagram</span>
-              </a>
-
-              {/* YouTube link */}
-              <a
-                href="https://www.youtube.com/@scriptdoctortamil"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl text-white bg-red-600 hover:bg-red-700 shadow-md transition-all transform hover:scale-105"
-              >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                </svg>
-                <span>YouTube</span>
-              </a>
-
-              <a
-                href="mailto:ScriptDoctortamil@gmail.com"
-                className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-xl border bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300 transition-colors"
-              >
-                <svg
-                  className="w-4 h-4 text-amber-700"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                  />
-                </svg>
-                ScriptDoctortamil@gmail.com
-              </a>
-
-              <button
-                onClick={handleCopyEmail}
-                className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-xl border bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-amber-800 border-slate-300 transition-colors cursor-pointer"
-              >
-                <svg
-                  className="w-3.5 h-3.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 002-2v-6a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                  />
-                </svg>
-                {copiedEmail ? "Copied!" : "Copy Email"}
-              </button>
             </div>
           </div>
         </div>
@@ -2035,6 +1983,9 @@ export default function Home() {
               className={`relative w-full rounded-2xl overflow-hidden bg-slate-950 ${
                 previewImage === "/images/banner.jpg"
                   ? "aspect-[16/9]"
+                  : previewImage?.includes("Tamil") ||
+                    previewImage?.includes("English")
+                  ? "aspect-[1241/1755] max-h-[78vh]"
                   : "aspect-[9/16] max-h-[75vh]"
               }`}
             >
@@ -2050,9 +2001,13 @@ export default function Home() {
               <span className="text-amber-700">
                 {previewImage === "/images/banner.jpg"
                   ? "🎬 Full Official Tamil Screenplay Banner (1200 x 675)"
+                  : previewImage?.includes("Tamil")
+                  ? "📖 Official Creator Profile (தமிழ் Document Slide)"
+                  : previewImage?.includes("English")
+                  ? "📖 Official Creator Profile (English Document Slide)"
                   : "📖 Kill the Cat Official Cover"}
               </span>
-              <span>High Resolution • 3.07 MB PDF</span>
+              <span>High Resolution • Verified Official Document</span>
             </div>
             <button
               onClick={() => setPreviewImage(null)}
@@ -2064,31 +2019,27 @@ export default function Home() {
         </div>
       )}
 
+      {/* Bottom Spacer so content is not obscured by sticky bottom bar on mobile */}
+      <div className="h-24 lg:hidden pointer-events-none" />
+
       {/* STICKY MOBILE BOTTOM BUY BAR */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t p-3 backdrop-blur-xl flex items-center justify-between gap-3 shadow-2xl bg-white/95 border-amber-300">
-        <div>
-          <span className="text-xs text-slate-500 block leading-tight">
-            Kill the Cat E-Book
-          </span>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-lg font-black text-amber-600">₹333</span>
-            <span className="line-through text-xs text-slate-400 font-semibold">
-              ₹500
-            </span>
-          </div>
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t p-2.5 sm:p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl flex items-center justify-between gap-2.5 sm:gap-3 shadow-2xl bg-white/95 border-amber-300">
+        {/* Left Side: Timer Only (Price Removed) */}
+        <div className="flex items-center min-w-0 flex-shrink-0">
+          <OfferCountdownTimer compact />
         </div>
+
+        {/* Right Side: Get your Copy CTA Button */}
         <a
           href={PAYMENT_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs sm:text-sm px-3.5 py-2.5 rounded-xl shadow-lg shadow-amber-500/25 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer whitespace-nowrap"
+          onClick={trackInitiateCheckout}
+          className="bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs sm:text-sm px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl shadow-lg shadow-amber-500/25 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer whitespace-nowrap flex-shrink-0"
         >
-          <span>Get E-Book • ₹333</span>
-          <span className="line-through text-slate-800/60 text-[11px] sm:text-xs font-semibold">
-            ₹500
-          </span>
+          <span>Get your Copy</span>
           <svg
-            className="w-3.5 h-3.5 flex-shrink-0"
+            className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

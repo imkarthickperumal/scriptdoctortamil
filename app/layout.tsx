@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import MetaPixel from "./components/MetaPixel";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -96,6 +97,8 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen font-sans antialiased selection:bg-amber-500 selection:text-black transition-colors duration-300">
         {children}
+        {/* Meta Pixel — loads after hydration, fires PageView + ViewContent */}
+        <MetaPixel />
       </body>
     </html>
   );
