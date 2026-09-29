@@ -1426,7 +1426,7 @@ export default function Home() {
             {/* Header pill & Language Switcher for Author */}
             <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 text-amber-700 text-xs font-bold uppercase tracking-wider border border-amber-500/20">
-                Official Creator &amp; Author Rights Profile
+                Free Ebook Sample pages
               </div>
 
               {/* Tamil & English Switcher inside Author Section */}
@@ -1462,33 +1462,6 @@ export default function Home() {
           </div>
 
           <div className="w-full space-y-4">
-            <div>
-              <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-                Script Doctor Tamil
-              </h3>
-              <p className="text-xs sm:text-sm font-bold text-amber-700 uppercase tracking-wide mt-0.5">
-                Ja. Asarudeen (Asar J) • Director, Screenwriter &amp; Cinema
-                Educator
-              </p>
-
-              {/* Author Career Highlights */}
-              <div className="flex flex-wrap items-center gap-2 mt-3 text-[11px] sm:text-xs">
-                <span className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-semibold">
-                  🎬 40+ Works at Blacksheep
-                </span>
-                <span className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-semibold">
-                  🏢 LYCA &amp; Rowdy Pictures Discussion Teams
-                </span>
-                <span className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-semibold">
-                  🎥 Kottukkaali &amp; Maharaja Promo Director
-                </span>
-                <span className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-semibold">
-                  📖 Author of &ldquo;Nizhal Thirudan&rdquo; &amp; &ldquo;Kill
-                  the Cat&rdquo;
-                </span>
-              </div>
-            </div>
-
             {/* Author Profile Document Slides Viewer (Replaces Text with First and Second Slide Images) */}
             <div className="w-full flex flex-col items-center gap-4 pt-2">
               {/* Slide Navigation Header Bar */}
@@ -1634,10 +1607,7 @@ export default function Home() {
                 {/* Bottom Carousel Pagination Dots & Page Indicator */}
                 <div className="flex items-center justify-between text-xs font-bold text-slate-600 px-2 pt-3">
                   <span className="text-amber-800">
-                    {language === "tamil"
-                      ? "அதிகாரப்பூர்வ சுயவிவரம்"
-                      : "Official Creator Profile"}{" "}
-                    • Slide {authorSlide + 1} of 2
+                    sample copy • Slide {authorSlide + 1} of 2
                   </span>
                   <div className="flex items-center gap-2">
                     <button
@@ -2002,9 +1972,9 @@ export default function Home() {
                 {previewImage === "/images/banner.jpg"
                   ? "🎬 Full Official Tamil Screenplay Banner (1200 x 675)"
                   : previewImage?.includes("Tamil")
-                  ? "📖 Official Creator Profile (தமிழ் Document Slide)"
+                  ? "📖 sample copy (தமிழ் Document Slide)"
                   : previewImage?.includes("English")
-                  ? "📖 Official Creator Profile (English Document Slide)"
+                  ? "📖 sample copy (English Document Slide)"
                   : "📖 Kill the Cat Official Cover"}
               </span>
               <span>High Resolution • Verified Official Document</span>
@@ -2023,23 +1993,30 @@ export default function Home() {
       <div className="h-24 lg:hidden pointer-events-none" />
 
       {/* STICKY MOBILE BOTTOM BUY BAR */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t p-2.5 sm:p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl flex items-center justify-between gap-2.5 sm:gap-3 shadow-2xl bg-white/95 border-amber-300">
-        {/* Left Side: Timer Only (Price Removed) */}
-        <div className="flex items-center min-w-0 flex-shrink-0">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t px-2.5 sm:px-3 py-2 sm:py-2.5 pb-[max(0.6rem,env(safe-area-inset-bottom))] backdrop-blur-xl flex items-center justify-between gap-1.5 sm:gap-2.5 shadow-2xl bg-white/95 border-amber-300">
+        {/* Left Side: Timer Only */}
+        <div className="flex items-center flex-shrink-0">
           <OfferCountdownTimer compact />
         </div>
 
-        {/* Right Side: Get your Copy CTA Button */}
+        {/* Right Side: Get your Copy CTA Button with Mobile Price Strikethrough */}
         <a
           href={PAYMENT_URL}
           target="_blank"
           rel="noopener noreferrer"
           onClick={trackInitiateCheckout}
-          className="bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs sm:text-sm px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl shadow-lg shadow-amber-500/25 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer whitespace-nowrap flex-shrink-0"
+          className="bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-xl shadow-md shadow-amber-500/25 transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer whitespace-nowrap flex-shrink-0"
         >
-          <span>Get your Copy</span>
+          <span className="line-through decoration-red-600 decoration-[1.5px] text-slate-700/80 text-[10px] sm:text-[11px] font-bold">
+            ₹500
+          </span>
+          <span className="text-[11px] sm:text-xs font-black text-slate-950">
+            ₹333
+          </span>
+          <span className="text-slate-950/25 font-normal">|</span>
+          <span className="font-extrabold">Get your Copy</span>
           <svg
-            className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0"
+            className="w-3.5 h-3.5 flex-shrink-0"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
