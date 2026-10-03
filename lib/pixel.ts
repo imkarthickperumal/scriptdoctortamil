@@ -1,4 +1,4 @@
-﻿/**
+/**
  * lib/pixel.ts
  * ─────────────────────────────────────────────────────────────
  * Lightweight, type-safe wrapper around the Meta Pixel (fbq).
@@ -20,7 +20,8 @@ declare global {
   }
 }
 
-export const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "";
+export const PIXEL_ID =
+  process.env.NEXT_PUBLIC_META_PIXEL_ID || "1599980155160080";
 
 /** Fire a standard Meta Pixel event. */
 export function fbqEvent(

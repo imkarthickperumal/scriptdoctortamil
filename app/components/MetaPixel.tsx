@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 /**
  * app/components/MetaPixel.tsx
@@ -23,7 +23,6 @@ export default function MetaPixel() {
     fired.current = true;
     // Small delay to ensure fbq is available after script loads
     const id = setTimeout(() => {
-      trackPageView();
       trackViewContent();
     }, 300);
     return () => clearTimeout(id);
@@ -48,6 +47,7 @@ t.src=v;s=b.getElementsByTagName(e)[0];
 s.parentNode.insertBefore(t,s)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
 fbq('init', '${PIXEL_ID}');
+fbq('track', 'PageView');
 `,
         }}
       />
